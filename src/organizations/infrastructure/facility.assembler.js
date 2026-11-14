@@ -1,4 +1,5 @@
 import {Facility} from "../domain/model/facility.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 /**
  * Maps facilities resources of the API to and from Facility entities.
@@ -11,7 +12,7 @@ export class FacilityAssembler {
      * @returns {Facility} The entity.
      */
     static toEntityFromResource(resource) {
-        return new Facility({...resource});
+        return new Facility({...resource, type: EnumValue.toView(resource.type), status: EnumValue.toView(resource.status)});
     }
 
     /**
@@ -35,10 +36,10 @@ export class FacilityAssembler {
             id: entity.id,
             organizationId: entity.organizationId,
             name: entity.name,
-            type: entity.type,
+            type: EnumValue.toPlatform(entity.type),
             timezone: entity.timezone,
             ownerName: entity.ownerName,
-            status: entity.status
+            status: EnumValue.toPlatform(entity.status)
         };
     }
 }

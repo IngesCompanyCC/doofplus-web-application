@@ -1,4 +1,5 @@
 import {Equipment} from "../domain/model/equipment.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 /**
  * Maps equipment resources of the API to and from Equipment entities.
@@ -11,7 +12,7 @@ export class EquipmentAssembler {
      * @returns {Equipment} The entity.
      */
     static toEntityFromResource(resource) {
-        return new Equipment({...resource});
+        return new Equipment({...resource, calibrationStatus: EnumValue.toView(resource.calibrationStatus)});
     }
 
     /**
@@ -37,7 +38,7 @@ export class EquipmentAssembler {
             name: entity.name,
             model: entity.model,
             location: entity.location,
-            calibrationStatus: entity.calibrationStatus,
+            calibrationStatus: EnumValue.toPlatform(entity.calibrationStatus),
             calibrationDue: entity.calibrationDue,
             certificate: entity.certificate,
             nextMaintenance: entity.nextMaintenance,

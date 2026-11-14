@@ -1,6 +1,9 @@
 import axios from "axios";
 
-const platformApi = import.meta.env.VITE_PLATFORM_API_URL;
+/** DoofPlus Platform (RESTful Web Services): Organizations and IoT Monitoring. */
+export const platformApiUrl = import.meta.env.VITE_PLATFORM_API_URL;
+/** Fake API (json-server) for the bounded contexts not connected yet: IAM, Manufacturing, Quality and Subscriptions. */
+export const fakeApiUrl = import.meta.env.VITE_FAKE_API_URL;
 
 /**
  * Shared infrastructure base class that configures the HTTP client for the DoofPlus platform API.
@@ -18,9 +21,12 @@ export class BaseApi {
     /**
      * Initializes the Axios HTTP client with the base URL from environment variables.
      */
-    constructor() {
+    /**
+     * @param {string} [baseUrl] - Base URL of the API; the Fake API by default.
+     */
+    constructor(baseUrl = fakeApiUrl) {
         this.#http = axios.create({
-            baseURL: platformApi,
+            baseURL: baseUrl,
             headers: { 'Content-Type': 'application/json' }
         });
     }

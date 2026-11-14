@@ -38,15 +38,15 @@ const searchQuery = ref('');
 const search = async () => {
   const code = searchQuery.value.trim().toUpperCase();
   if (!code) return;
-  const baseUrl = import.meta.env.VITE_PLATFORM_API_URL;
   for (const target of searchTargets.value) {
     try {
-      const url = `${baseUrl}${target.endpoint}`;
-      const response = await axios.get(url, { params: { code } });
-      const found = response.data;
-      if (Array.isArray(found) && found.length) {
+      // The Fake API filters by code; the DoofPlus Platform returns the whole collection, so the exact code is matched here.
+      const response = await axios.get(target.url, { params: { code } });
+      const records = Array.isArray(response.data) ? response.data : [];
+      const found = records.find(record => record.code?.toUpperCase() === code);
+      if (found) {
         searchQuery.value = '';
-        const targetRoute = target.route.replace('{code}', encodeURIComponent(found[0].code));
+        const targetRoute = target.route.replace('{code}', encodeURIComponent(found.code));
         await router.push(targetRoute);
         return;
       }

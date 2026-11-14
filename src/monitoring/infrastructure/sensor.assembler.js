@@ -1,4 +1,5 @@
 import {Sensor} from "../domain/model/sensor.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 /**
  * Maps sensors resources of the API to and from Sensor entities.
@@ -11,7 +12,7 @@ export class SensorAssembler {
      * @returns {Sensor} The entity.
      */
     static toEntityFromResource(resource) {
-        return new Sensor({...resource});
+        return new Sensor({...resource, type: EnumValue.toView(resource.type), status: EnumValue.toView(resource.status)});
     }
 
     /**
@@ -35,12 +36,12 @@ export class SensorAssembler {
             id: entity.id,
             code: entity.code,
             deviceId: entity.deviceId,
-            type: entity.type,
+            type: EnumValue.toPlatform(entity.type),
             unit: entity.unit,
             equipmentCode: entity.equipmentCode,
             lowerLimit: entity.lowerLimit,
             upperLimit: entity.upperLimit,
-            status: entity.status,
+            status: EnumValue.toPlatform(entity.status),
             assignedBatch: entity.assignedBatch
         };
     }

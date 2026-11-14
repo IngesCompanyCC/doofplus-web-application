@@ -1,4 +1,4 @@
-import {BaseApi} from "../../shared/infrastructure/base-api.js";
+import {BaseApi, platformApiUrl} from "../../shared/infrastructure/base-api.js";
 import {BaseEndpoint} from "../../shared/infrastructure/base-endpoint.js";
 
 const equipmentEndpointPath = import.meta.env.VITE_EQUIPMENT_ENDPOINT_PATH;
@@ -20,7 +20,7 @@ export class MonitoringApi extends BaseApi {
 
     /** Creates one endpoint client per collection. */
     constructor() {
-        super();
+        super(platformApiUrl);
         this.#equipmentEndpoint = new BaseEndpoint(this, equipmentEndpointPath);
         this.#sensorsEndpoint = new BaseEndpoint(this, sensorsEndpointPath);
         this.#readingsEndpoint = new BaseEndpoint(this, readingsEndpointPath);

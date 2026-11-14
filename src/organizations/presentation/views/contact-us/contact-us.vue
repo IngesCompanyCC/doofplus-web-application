@@ -16,7 +16,7 @@ const channels = [
   { key: 'location', icon: 'pi pi-map-marker', value: 'Lima, Perú' }
 ];
 /** Topics the visitor can ask about, shown in the side panel. */
-const topics = ['plans', 'demo', 'compliance', 'support'];
+const topics = ['plans', 'environments', 'compliance', 'support'];
 
 const form = reactive({ fullName: '', email: '', message: '' });
 /** Whether the form was submitted once, to show the validation messages. */

@@ -635,10 +635,10 @@
       "title": "Send us your question",
       "subtitle": "Tell us about your laboratory and what you need. The DoofPlus team answers by email.",
       "panel-title": "Talk to the DoofPlus team",
-      "panel-text": "Questions about plans, a guided demo or how DoofPlus supports DIGEMID and GMP compliance? We are here to help.",
+      "panel-text": "Questions about the plans, the environments for each role or how DoofPlus supports DIGEMID and GMP compliance? We are here to help.",
       "topics": {
         "plans": "Plans and pricing for your laboratory",
-        "demo": "A guided demo for your QA and Production teams",
+        "environments": "QA, Production and Administration environments for your teams",
         "compliance": "DIGEMID and GMP compliance",
         "support": "Technical support and onboarding"
       },

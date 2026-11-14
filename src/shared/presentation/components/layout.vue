@@ -2,21 +2,65 @@
 import {computed, ref} from "vue";
 import {useRoute, useRouter} from "vue-router";
 import {useI18n} from "vue-i18n";
+import {useToast} from "primevue/usetoast";
+import axios from "axios";
 import LanguageSwitcher from "./language-switcher.vue";
 import FooterContent from "./footer-content.vue";
+import {formatDate} from "../format.js";
 import useIamStore from "../../../iam/application/iam.store.js";
 import {homeOf, workspaceEnvironments} from "../workspace-environments.js";
 
-const { t } = useI18n();
+const { t, locale } = useI18n();
 const route = useRoute();
 const router = useRouter();
 const store = useIamStore();
+const toast = useToast();
 
 /** Environment of the workspace, from the route meta. */
 const environment = computed(() => route.meta['environment']);
 /** Sidebar links of the environment. */
 const items = computed(() => workspaceEnvironments[environment.value]?.navigation ?? []);
 const home = computed(() => homeOf(environment.value));
+/** Landing Page of DoofPlus, whose FAQ answers the questions about the workspace. */
+const landingPageUrl = import.meta.env.VITE_LANDING_PAGE_URL;
+/** Date of today, shown in the session status of the footer. */
+const today = computed(() => formatDate(new Date().toISOString(), locale.value));
+
+/** Collections searched from the top bar in this environment. */
+const searchTargets = computed(() => workspaceEnvironments[environment.value]?.search ?? []);
+const searchPlaceholder = computed(() => t(`shell.search-${environment.value}`));
+const searchQuery = ref('');
+
+/**
+ * Opens the record whose code matches the search exactly, looking in the collections of the environment in order.
+ * When nothing matches, a message suggests the expected format.
+ */
+const search = async () => {
+  const code = searchQuery.value.trim().toUpperCase();
+  if (!code) return;
+  const baseUrl = import.meta.env.VITE_PLATFORM_API_URL;
+  for (const target of searchTargets.value) {
+    try {
+      const url = `${baseUrl}${target.endpoint}`;
+      const response = await axios.get(url, { params: { code } });
+      const found = response.data;
+      if (Array.isArray(found) && found.length) {
+        searchQuery.value = '';
+        const targetRoute = target.route.replace('{code}', encodeURIComponent(found[0].code));
+        await router.push(targetRoute);
+        return;
+      }
+    } catch {
+      // try next target
+    }
+  }
+  const example = workspaceEnvironments[environment.value]?.searchExample;
+  toast.add({
+    severity: 'info',
+    summary: t('shell.search-empty', { code, example }),
+    life: 5000
+  });
+};
 
 /**
  * Whether a sidebar link is the current page, including its detail pages (such as a batch of the batch list).
@@ -57,6 +101,9 @@ const userMenuItems = computed(() => [
       <nav :aria-label="t('shell.main-navigation')">
         <router-link v-for="item in items" :key="item.to" :to="item.to" class="nav-link" :class="{ active: isActive(item) }">{{ t(item.label) }}</router-link>
       </nav>
+      <a class="help" :href="`${landingPageUrl}#faq`" target="_blank" rel="noopener">
+        {{ t('shell.help') }}<i class="pi pi-external-link" aria-hidden="true"></i>
+      </a>
     </aside>
 
     <pv-drawer v-model:visible="drawer" :header="t('shell.workspace')" class="sidebar-drawer">
@@ -69,6 +116,12 @@ const userMenuItems = computed(() => [
       <pv-toolbar class="topbar">
         <template #start>
           <pv-button class="md:hidden" icon="pi pi-bars" text rounded :aria-label="t('shell.menu')" @click="toggleDrawer"/>
+          <form v-if="searchTargets.length" class="search hidden sm:block" role="search" @submit.prevent="search">
+            <pv-icon-field>
+              <pv-input-icon class="pi pi-search"/>
+              <pv-input-text v-model="searchQuery" type="search" :placeholder="searchPlaceholder" :aria-label="searchPlaceholder"/>
+            </pv-icon-field>
+          </form>
         </template>
         <template #end>
           <div class="flex align-items-center gap-3">
@@ -90,7 +143,11 @@ const userMenuItems = computed(() => [
       <main id="content" class="content" tabindex="-1">
         <router-view/>
       </main>
-      <footer-content/>
+      <footer-content>
+        <template v-if="store.currentUser">
+          {{ store.currentUser.organizationName }} · {{ store.currentUser.plant }} · {{ today }} · {{ t('shell.utc') }} · {{ t('shell.role-based') }}
+        </template>
+      </footer-content>
     </div>
   </div>
 </template>
@@ -158,6 +215,24 @@ nav {
   color: #e2e8f0;
   font-size: 14px;
   font-weight: 500;
+}
+
+.help {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: auto;
+  padding: 10px 12px;
+  color: #cbd5e1;
+  font-size: 13px;
+}
+
+.help:hover {
+  color: #fff;
+}
+
+.help .pi {
+  font-size: 12px;
 }
 
 .nav-link:hover {
@@ -241,5 +316,10 @@ nav {
   flex: 1;
   padding: 24px;
   outline: none;
+}
+
+.search :deep(input) {
+  width: 340px;
+  border-radius: 999px;
 }
 </style>

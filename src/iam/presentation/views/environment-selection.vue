@@ -6,9 +6,6 @@ const { t } = useI18n();
 
 /** The three environments, with the first four features of each one. */
 const environments = Object.values(workspaceEnvironments).map(item => ({...item, summary: item.features.slice(0, 4)}));
-
-/** Plans section of the Landing Page. */
-const plansUrl = `${import.meta.env.VITE_LANDING_PAGE_URL}#plans`;
 </script>
 
 <template>
@@ -45,8 +42,8 @@ const plansUrl = `${import.meta.env.VITE_LANDING_PAGE_URL}#plans`;
       <router-link :to="{ name: 'organization-registration' }">{{ t('iam.selection.register') }} →</router-link>
     </p>
     <p class="links">
-      <strong>{{ t('iam.selection.not-customer') }}</strong>
-      <a :href="plansUrl">{{ t('iam.selection.see-plans') }} →</a>
+      <strong>{{ t('iam.selection.questions') }}</strong>
+      <router-link :to="{ name: 'contact-us' }">{{ t('shell.contact-us') }} →</router-link>
     </p>
   </section>
 </template>

@@ -57,8 +57,8 @@ Other flows to try:
 
 | Bounded context | Folder | Routes |
 |-----------------|--------|--------|
-| Identity & Access Management | `src/iam` | `/sign-in`, `/sign-in/:environment` (credentials, two-factor code, not authorized) |
-| Organization Management | `src/organizations` | `/register`, `/administration/overview`, `/<environment>/profile` |
+| Identity & Access Management | `src/iam` | `/sign-in`, `/sign-in/:environment` (credentials, two-factor code, not authorized), `/administration/users`, `/administration/users/invite` |
+| Organization Management | `src/organizations` | `/register`, `/contact` (Contact us: inquiry form, invalid data, inquiry received), `/administration/overview`, `/<environment>/profile` |
 | Subscriptions & Payments | `src/subscriptions` | `/administration/subscription` (declined payment, plan change review) |
 | Manufacturing & Batch Management | `src/manufacturing` | `/production/overview`, `/production/orders`, `/production/orders/:code`, `/production/products`, `/production/batches`, `/production/batches/:code`, `/production/raw-materials` |
 | IoT Monitoring | `src/monitoring` | `/production/iot`, `/production/equipment`, `/production/sensors/:code`, `/production/incidents`, `/production/batches/:code/iot` |
@@ -156,6 +156,7 @@ In the Landing Page repository (`IngesCompanyCC-LandingPage`), set `WEB_APP_URL`
 | Cobades Zamora, Yhoshua Hebert | [YhoshuaCZ](https://github.com/YhoshuaCZ) |
 | Rojas Ambicho, Nestor Daniel | [danRO-20](https://github.com/danRO-20) |
 | Yarleque Ruiz, Cristina Marcela | [Cris06luna](https://github.com/Cris06luna) |
-| Zavaleta Gutierrez, Rodolfo Martin | [Rodolxde](https://github.com/Rodolxde) |
+| Zavaleta Gutierrez, Rodolfo Martin | [gutierrezrodolfo360-bit](https://github.com/gutierrezrodolfo360-bit) |
 
 UPC · Ingeniería de Software · 1ASI0730 Aplicaciones Web · 2026-20
+

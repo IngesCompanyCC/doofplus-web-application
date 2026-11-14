@@ -2,6 +2,8 @@
  * Environments of the Web Application. Each role signs in to one of them and sees its own navigation.
  * Each bounded context adds its pages to the navigation of the environment that uses them.
  */
+import {fakeApiUrl, platformApiUrl} from "../infrastructure/base-api.js";
+
 export const workspaceEnvironments = {
     qa: {
         key: 'qa',
@@ -22,8 +24,8 @@ export const workspaceEnvironments = {
             { to: '/qa/tasks', label: 'nav.tasks' }
         ],
         search: [
-            { endpoint: import.meta.env.VITE_QUALITY_DOCUMENTS_ENDPOINT_PATH, route: '/qa/documents?code={code}' },
-            { endpoint: import.meta.env.VITE_BATCHES_ENDPOINT_PATH, route: '/qa/batch-release?code={code}' }
+            { url: `${fakeApiUrl}${import.meta.env.VITE_QUALITY_DOCUMENTS_ENDPOINT_PATH}`, route: '/qa/documents?code={code}' },
+            { url: `${fakeApiUrl}${import.meta.env.VITE_BATCHES_ENDPOINT_PATH}`, route: '/qa/batch-release?code={code}' }
         ],
         searchExample: 'SOP-QA-014'
     },
@@ -44,9 +46,9 @@ export const workspaceEnvironments = {
             { to: '/production/tasks', label: 'nav.tasks' }
         ],
         search: [
-            { endpoint: import.meta.env.VITE_BATCHES_ENDPOINT_PATH, route: '/production/batches/{code}' },
-            { endpoint: import.meta.env.VITE_PRODUCTION_ORDERS_ENDPOINT_PATH, route: '/production/orders/{code}' },
-            { endpoint: import.meta.env.VITE_SENSORS_ENDPOINT_PATH, route: '/production/sensors/{code}' }
+            { url: `${fakeApiUrl}${import.meta.env.VITE_BATCHES_ENDPOINT_PATH}`, route: '/production/batches/{code}' },
+            { url: `${fakeApiUrl}${import.meta.env.VITE_PRODUCTION_ORDERS_ENDPOINT_PATH}`, route: '/production/orders/{code}' },
+            { url: `${platformApiUrl}${import.meta.env.VITE_SENSORS_ENDPOINT_PATH}`, route: '/production/sensors/{code}' }
         ],
         searchExample: 'B-26041'
     },

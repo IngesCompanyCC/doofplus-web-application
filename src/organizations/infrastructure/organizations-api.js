@@ -1,4 +1,4 @@
-import {BaseApi} from "../../shared/infrastructure/base-api.js";
+import {BaseApi, platformApiUrl} from "../../shared/infrastructure/base-api.js";
 import {BaseEndpoint} from "../../shared/infrastructure/base-endpoint.js";
 
 const organizationsEndpointPath = import.meta.env.VITE_ORGANIZATIONS_ENDPOINT_PATH;
@@ -22,7 +22,7 @@ export class OrganizationsApi extends BaseApi {
 
     /** Creates one endpoint client per collection. */
     constructor() {
-        super();
+        super(platformApiUrl);
         this.#organizationsEndpoint = new BaseEndpoint(this, organizationsEndpointPath);
         this.#facilitiesEndpoint = new BaseEndpoint(this, facilitiesEndpointPath);
         this.#userProfilesEndpoint = new BaseEndpoint(this, userProfilesEndpointPath);

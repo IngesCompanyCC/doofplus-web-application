@@ -1,4 +1,5 @@
 import {Alert} from "../domain/model/alert.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 /**
  * Maps alerts resources of the API to and from Alert entities.
@@ -11,7 +12,7 @@ export class AlertAssembler {
      * @returns {Alert} The entity.
      */
     static toEntityFromResource(resource) {
-        return new Alert({...resource});
+        return new Alert({...resource, severity: EnumValue.toView(resource.severity), status: EnumValue.toView(resource.status)});
     }
 
     /**
@@ -36,8 +37,8 @@ export class AlertAssembler {
             code: entity.code,
             sensorCode: entity.sensorCode,
             equipmentCode: entity.equipmentCode,
-            severity: entity.severity,
-            status: entity.status,
+            severity: EnumValue.toPlatform(entity.severity),
+            status: EnumValue.toPlatform(entity.status),
             title: entity.title,
             detail: entity.detail,
             batchCode: entity.batchCode,

@@ -19,10 +19,12 @@ export class Subscription {
      * @param {string} params.cardExpiry - Expiry date of the card (MM/YYYY).
      * @param {string} params.billingEmail - Email that receives invoices and renewal reminders.
      */
-    constructor({id = 0, organizationId = 0, planKey = '', billingCycle = '', status = '', paymentState = '', nextInvoiceDate = '', autoRenew = false, cardBrand = '', cardLast4 = '', cardExpiry = '', billingEmail = ''}) {
+    constructor({id = 0, organizationId = 0, planId = 0, planKey = '', invoices = [], billingCycle = '', status = '', paymentState = '', nextInvoiceDate = '', autoRenew = false, cardBrand = '', cardLast4 = '', cardExpiry = '', billingEmail = ''}) {
         this.id = id;
         this.organizationId = organizationId;
+        this.planId = planId;
         this.planKey = planKey;
+        this.invoices = invoices;
         this.billingCycle = billingCycle;
         this.status = status;
         this.paymentState = paymentState;

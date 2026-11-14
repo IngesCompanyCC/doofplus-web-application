@@ -1,77 +1,57 @@
-import {BaseApi} from "../../shared/infrastructure/base-api.js";
+import {BaseApi, platformApiUrl} from "../../shared/infrastructure/base-api.js";
 import {BaseEndpoint} from "../../shared/infrastructure/base-endpoint.js";
 
 const plansEndpointPath = import.meta.env.VITE_PLANS_ENDPOINT_PATH;
 const subscriptionsEndpointPath = import.meta.env.VITE_SUBSCRIPTIONS_ENDPOINT_PATH;
-const invoicesEndpointPath = import.meta.env.VITE_INVOICES_ENDPOINT_PATH;
 
 /**
- * Infrastructure gateway for the Subscriptions & Payments endpoints.
- *
- * @class SubscriptionsApi
- * @extends BaseApi
+ * API of the Subscriptions bounded context over the DoofPlus Platform: plans, subscriptions, payments and plan changes.
  */
 export class SubscriptionsApi extends BaseApi {
     #plansEndpoint;
-    #subscriptionsEndpoint;
-    #invoicesEndpoint;
 
-    /** Creates one endpoint client per collection. */
     constructor() {
-        super();
+        super(platformApiUrl);
         this.#plansEndpoint = new BaseEndpoint(this, plansEndpointPath);
-        this.#subscriptionsEndpoint = new BaseEndpoint(this, subscriptionsEndpointPath);
-        this.#invoicesEndpoint = new BaseEndpoint(this, invoicesEndpointPath);
     }
 
-    /**
-     * Retrieves the plans.
-     * @returns {Promise<import('axios').AxiosResponse<Array<Object>>>} HTTP response with the plans.
-     */
+    /** Gets the plans. */
     getPlans() {
         return this.#plansEndpoint.getAll();
     }
 
     /**
-     * Retrieves the subscriptions.
-     * @returns {Promise<import('axios').AxiosResponse<Array<Object>>>} HTTP response with the subscriptions.
+     * Gets the subscriptions of an organization.
+     * @param {number} organizationId - Identifier of the organization.
      */
-    getSubscriptions() {
-        return this.#subscriptionsEndpoint.getAll();
+    getSubscriptionsByOrganization(organizationId) {
+        return this.http.get(subscriptionsEndpointPath, {params: {organizationId}});
     }
 
     /**
-     * Creates a subscription resource.
-     * @param {Object} resource - Resource built by the SubscriptionAssembler.
-     * @returns {Promise<import('axios').AxiosResponse<Object>>} HTTP response with the saved resource.
+     * Creates a pending subscription.
+     * @param {object} resource - Organization, plan, billing cycle and card.
      */
     createSubscription(resource) {
-        return this.#subscriptionsEndpoint.create(resource);
+        return this.http.post(subscriptionsEndpointPath, resource);
     }
 
     /**
-     * Updates a subscription resource.
-     * @param {Object} resource - Resource built by the SubscriptionAssembler.
-     * @returns {Promise<import('axios').AxiosResponse<Object>>} HTTP response with the saved resource.
+     * Changes the plan and the billing cycle of a subscription.
+     * @param {number} id - Identifier of the subscription.
+     * @param {number} planId - Identifier of the new plan.
+     * @param {string} billingCycle - Monthly or Annual.
      */
-    updateSubscription(resource) {
-        return this.#subscriptionsEndpoint.update(resource.id, resource);
+    changePlan(id, planId, billingCycle) {
+        return this.http.put(`${subscriptionsEndpointPath}/${id}/plan`, {planId, billingCycle});
     }
 
     /**
-     * Retrieves the invoices.
-     * @returns {Promise<import('axios').AxiosResponse<Array<Object>>>} HTTP response with the invoices.
+     * Pays the next billing period with Niubiz.
+     * @param {number} id - Identifier of the subscription.
+     * @param {string} cardToken - Token of the card.
      */
-    getInvoices() {
-        return this.#invoicesEndpoint.getAll();
-    }
-
-    /**
-     * Creates a invoice resource.
-     * @param {Object} resource - Resource built by the InvoiceAssembler.
-     * @returns {Promise<import('axios').AxiosResponse<Object>>} HTTP response with the saved resource.
-     */
-    createInvoice(resource) {
-        return this.#invoicesEndpoint.create(resource);
+    paySubscription(id, cardToken) {
+        return this.http.post(`${subscriptionsEndpointPath}/${id}/payments`, {cardToken});
     }
 }

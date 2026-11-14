@@ -635,10 +635,10 @@
       "title": "Envíanos tu consulta",
       "subtitle": "Cuéntanos sobre tu laboratorio y lo que necesitas. El equipo de DoofPlus te responde por correo.",
       "panel-title": "Habla con el equipo de DoofPlus",
-      "panel-text": "¿Dudas sobre los planes, una demo guiada o cómo DoofPlus apoya el cumplimiento de DIGEMID y BPM? Estamos para ayudarte.",
+      "panel-text": "¿Dudas sobre los planes, los entornos de cada rol o cómo DoofPlus apoya el cumplimiento de DIGEMID y BPM? Estamos para ayudarte.",
       "topics": {
         "plans": "Planes y precios para tu laboratorio",
-        "demo": "Una demo guiada para tus equipos de Calidad y Producción",
+        "environments": "Entornos de Calidad, Producción y Administración para tus equipos",
         "compliance": "Cumplimiento de DIGEMID y BPM",
         "support": "Soporte técnico e incorporación"
       },

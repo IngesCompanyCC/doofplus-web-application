@@ -99,6 +99,11 @@ const confirmChange = () => {
         </pv-card>
       </div>
 
+      <div v-for="(error, index) in store.errors" :key="index" class="alert declined" role="alert">
+        <i class="pi pi-times-circle" aria-hidden="true"></i>
+        <p class="flex-1">{{ error.message }}</p>
+      </div>
+
       <div v-if="store.subscription.paymentState === 'declined'" class="alert declined" role="alert">
         <i class="pi pi-exclamation-triangle" aria-hidden="true"></i>
         <div class="flex-1">

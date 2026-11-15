@@ -1,4 +1,5 @@
 import {CollaborationTask} from "../domain/model/collaboration-task.entity.js";
+import {fromPlatform} from "./platform-resource.js";
 
 /**
  * Maps collaboration tasks resources of the API to and from CollaborationTask entities.
@@ -11,7 +12,7 @@ export class CollaborationTaskAssembler {
      * @returns {CollaborationTask} The entity.
      */
     static toEntityFromResource(resource) {
-        return new CollaborationTask({...resource});
+        return new CollaborationTask(fromPlatform(resource, ["status"]));
     }
 
     /**

@@ -1,4 +1,16 @@
 import {RegulatoryReport} from "../domain/model/regulatory-report.entity.js";
+import {fromPlatform} from "./platform-resource.js";
+
+/**
+ * Names shown for the report types of the DoofPlus Platform. The platform accepts these names back.
+ * @type {Object<string, string>}
+ */
+const reportTypes = {
+    BatchDossier: 'Batch dossier',
+    QualityReview: 'Quality review',
+    CapaSummary: 'CAPA summary',
+    AuditEvidence: 'Audit evidence'
+};
 
 /**
  * Maps regulatory reports resources of the API to and from RegulatoryReport entities.
@@ -11,7 +23,8 @@ export class RegulatoryReportAssembler {
      * @returns {RegulatoryReport} The entity.
      */
     static toEntityFromResource(resource) {
-        return new RegulatoryReport({...resource});
+        const fields = fromPlatform(resource, ["status"]);
+        return new RegulatoryReport({...fields, type: reportTypes[resource.type] ?? resource.type});
     }
 
     /**

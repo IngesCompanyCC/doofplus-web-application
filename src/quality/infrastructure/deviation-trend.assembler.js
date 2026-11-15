@@ -1,4 +1,5 @@
 import {DeviationTrend} from "../domain/model/deviation-trend.entity.js";
+import {fromPlatform} from "./platform-resource.js";
 
 /**
  * Maps deviation trends resources of the API to and from DeviationTrend entities.
@@ -11,7 +12,7 @@ export class DeviationTrendAssembler {
      * @returns {DeviationTrend} The entity.
      */
     static toEntityFromResource(resource) {
-        return new DeviationTrend({...resource});
+        return new DeviationTrend(fromPlatform(resource));
     }
 
     /**

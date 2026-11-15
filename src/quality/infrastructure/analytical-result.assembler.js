@@ -1,4 +1,5 @@
 import {AnalyticalResult} from "../domain/model/analytical-result.entity.js";
+import {fromPlatform} from "./platform-resource.js";
 
 /**
  * Maps analytical results resources of the API to and from AnalyticalResult entities.
@@ -11,7 +12,7 @@ export class AnalyticalResultAssembler {
      * @returns {AnalyticalResult} The entity.
      */
     static toEntityFromResource(resource) {
-        return new AnalyticalResult({...resource});
+        return new AnalyticalResult(fromPlatform(resource, ["status", "approval"]));
     }
 
     /**

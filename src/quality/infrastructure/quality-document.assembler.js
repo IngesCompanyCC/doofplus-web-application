@@ -1,4 +1,5 @@
 import {QualityDocument} from "../domain/model/quality-document.entity.js";
+import {fromPlatform} from "./platform-resource.js";
 
 /**
  * Maps quality documents resources of the API to and from QualityDocument entities.
@@ -11,7 +12,7 @@ export class QualityDocumentAssembler {
      * @returns {QualityDocument} The entity.
      */
     static toEntityFromResource(resource) {
-        return new QualityDocument({...resource});
+        return new QualityDocument(fromPlatform(resource, ["status"]));
     }
 
     /**

@@ -2,7 +2,7 @@
  * Environments of the Web Application. Each role signs in to one of them and sees its own navigation.
  * Each bounded context adds its pages to the navigation of the environment that uses them.
  */
-import {fakeApiUrl, platformApiUrl} from "../infrastructure/base-api.js";
+import {platformApiUrl} from "../infrastructure/base-api.js";
 
 export const workspaceEnvironments = {
     qa: {
@@ -24,7 +24,7 @@ export const workspaceEnvironments = {
             { to: '/qa/tasks', label: 'nav.tasks' }
         ],
         search: [
-            { url: `${fakeApiUrl}${import.meta.env.VITE_QUALITY_DOCUMENTS_ENDPOINT_PATH}`, route: '/qa/documents?code={code}' },
+            { url: `${platformApiUrl}${import.meta.env.VITE_QUALITY_DOCUMENTS_ENDPOINT_PATH}`, route: '/qa/documents?code={code}' },
             { url: `${platformApiUrl}${import.meta.env.VITE_PRODUCTION_BATCHES_ENDPOINT_PATH}`, field: 'batchNumber', route: '/qa/batch-release?code={code}' }
         ],
         searchExample: 'SOP-QA-014'

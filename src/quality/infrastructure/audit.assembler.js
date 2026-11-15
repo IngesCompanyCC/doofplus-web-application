@@ -1,4 +1,5 @@
 import {Audit} from "../domain/model/audit.entity.js";
+import {fromPlatform} from "./platform-resource.js";
 
 /**
  * Maps audits resources of the API to and from Audit entities.
@@ -11,7 +12,7 @@ export class AuditAssembler {
      * @returns {Audit} The entity.
      */
     static toEntityFromResource(resource) {
-        return new Audit({...resource});
+        return new Audit(fromPlatform(resource, ["status"]));
     }
 
     /**

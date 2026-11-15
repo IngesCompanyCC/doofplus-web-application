@@ -1,4 +1,5 @@
 import {AuditEvent} from "../domain/model/audit-event.entity.js";
+import {fromPlatform} from "./platform-resource.js";
 
 /**
  * Maps audit events resources of the API to and from AuditEvent entities.
@@ -11,7 +12,7 @@ export class AuditEventAssembler {
      * @returns {AuditEvent} The entity.
      */
     static toEntityFromResource(resource) {
-        return new AuditEvent({...resource});
+        return new AuditEvent(fromPlatform(resource));
     }
 
     /**

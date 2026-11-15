@@ -1,4 +1,5 @@
 import {Evidence} from "../domain/model/evidence.entity.js";
+import {fromPlatform} from "./platform-resource.js";
 
 /**
  * Maps evidence resources of the API to and from Evidence entities.
@@ -11,7 +12,7 @@ export class EvidenceAssembler {
      * @returns {Evidence} The entity.
      */
     static toEntityFromResource(resource) {
-        return new Evidence({...resource});
+        return new Evidence(fromPlatform(resource, ["status"]));
     }
 
     /**

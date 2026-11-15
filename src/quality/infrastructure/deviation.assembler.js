@@ -1,4 +1,5 @@
 import {Deviation} from "../domain/model/deviation.entity.js";
+import {fromPlatform} from "./platform-resource.js";
 
 /**
  * Maps deviations resources of the API to and from Deviation entities.
@@ -11,7 +12,7 @@ export class DeviationAssembler {
      * @returns {Deviation} The entity.
      */
     static toEntityFromResource(resource) {
-        return new Deviation({...resource});
+        return new Deviation(fromPlatform(resource, ["classification", "status"]));
     }
 
     /**

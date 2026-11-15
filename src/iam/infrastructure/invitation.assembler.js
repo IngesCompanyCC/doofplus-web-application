@@ -1,4 +1,5 @@
 import {Invitation} from "../domain/model/invitation.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 /**
  * Maps invitation resources of the API to and from Invitation entities.
@@ -11,7 +12,7 @@ export class InvitationAssembler {
      * @returns {Invitation} The invitation entity.
      */
     static toEntityFromResource(resource) {
-        return new Invitation({...resource});
+        return new Invitation({...resource, note: resource.note ?? '', status: EnumValue.toView(resource.status)});
     }
 
     /**
@@ -33,6 +34,7 @@ export class InvitationAssembler {
     static toResourceFromEntity(entity) {
         return {
             id: entity.id,
+            organizationId: entity.organizationId,
             fullName: entity.fullName,
             email: entity.email,
             role: entity.role,

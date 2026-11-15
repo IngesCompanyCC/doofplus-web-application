@@ -1,10 +1,8 @@
 import axios from "axios";
 import {iamTokenInterceptor} from "../../iam/infrastructure/iam-token.interceptor.js";
 
-/** DoofPlus Platform (RESTful Web Services): IAM (sign-in, sign-up, users), Manufacturing, Quality, Organizations, IoT Monitoring and Subscriptions. */
+/** DoofPlus Platform (RESTful Web Services): every bounded context of the Web Application. */
 export const platformApiUrl = import.meta.env.VITE_PLATFORM_API_URL;
-/** Fake API (json-server) for the resources not connected yet: the IAM role profiles and invitations. */
-export const fakeApiUrl = import.meta.env.VITE_FAKE_API_URL;
 
 /**
  * Shared infrastructure base class that configures the HTTP client for the DoofPlus platform API.
@@ -23,9 +21,9 @@ export class BaseApi {
      * Initializes the Axios HTTP client with the base URL from environment variables.
      */
     /**
-     * @param {string} [baseUrl] - Base URL of the API; the Fake API by default.
+     * @param {string} [baseUrl] - Base URL of the API; the DoofPlus Platform by default.
      */
-    constructor(baseUrl = fakeApiUrl) {
+    constructor(baseUrl = platformApiUrl) {
         this.#http = axios.create({
             baseURL: baseUrl,
             headers: { 'Content-Type': 'application/json' }

@@ -15,7 +15,8 @@ export class Invitation {
      * @param {string} params.status - Invitation status (pending or accepted).
      * @param {string} params.sentAt - ISO 8601 date and time when the invitation was sent.
      */
-    constructor({id = 0, fullName = '', email = '', role = '', facility = '', note = '', status = 'pending', sentAt = ''}) {
+    constructor({id = 0, organizationId = 0, fullName = '', email = '', role = '', facility = '', note = '', status = 'pending', sentAt = ''}) {
+        this.organizationId = organizationId;
         this.id = id;
         this.fullName = fullName;
         this.email = email;

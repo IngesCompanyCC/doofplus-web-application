@@ -1,17 +1,30 @@
 import {ProductionOrder} from "../domain/model/production-order.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 /**
- * Maps production orders resources of the API to and from ProductionOrder entities.
+ * Maps production order resources of the DoofPlus Platform to and from ProductionOrder entities.
+ * The operations of each order are mapped by the OperationAssembler.
  *
  * @class ProductionOrderAssembler
  */
 export class ProductionOrderAssembler {
     /**
-     * @param {Object} resource - Resource from the API.
-     * @returns {ProductionOrder} The entity.
+     * @param {Object} resource - Production order resource.
+     * @returns {ProductionOrder} The entity, with its status in kebab-case.
      */
     static toEntityFromResource(resource) {
-        return new ProductionOrder({...resource});
+        return new ProductionOrder({
+            id: resource.id,
+            code: resource.code,
+            productCode: resource.productCode,
+            formulaId: resource.formulaId,
+            batchCode: resource.batchCode ?? '',
+            plannedQuantity: resource.plannedQuantity,
+            line: resource.line ?? '',
+            status: EnumValue.toView(resource.status),
+            plannedStart: resource.plannedStart ?? '',
+            plannedEnd: resource.plannedEnd ?? ''
+        });
     }
 
     /**
@@ -28,20 +41,18 @@ export class ProductionOrderAssembler {
 
     /**
      * @param {ProductionOrder} entity - The entity.
-     * @returns {Object} The resource sent to the API.
+     * @returns {Object} The resource to create the order; the platform takes the product from the master formula.
      */
     static toResourceFromEntity(entity) {
         return {
-            id: entity.id,
             code: entity.code,
-            productCode: entity.productCode,
             formulaId: entity.formulaId,
             batchCode: entity.batchCode,
             plannedQuantity: entity.plannedQuantity,
             line: entity.line,
-            status: entity.status,
-            plannedStart: entity.plannedStart,
-            plannedEnd: entity.plannedEnd
+            plannedStart: entity.plannedStart || null,
+            plannedEnd: entity.plannedEnd || null,
+            operations: []
         };
     }
 }

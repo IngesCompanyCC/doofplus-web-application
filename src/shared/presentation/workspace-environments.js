@@ -25,7 +25,7 @@ export const workspaceEnvironments = {
         ],
         search: [
             { url: `${fakeApiUrl}${import.meta.env.VITE_QUALITY_DOCUMENTS_ENDPOINT_PATH}`, route: '/qa/documents?code={code}' },
-            { url: `${fakeApiUrl}${import.meta.env.VITE_BATCHES_ENDPOINT_PATH}`, route: '/qa/batch-release?code={code}' }
+            { url: `${platformApiUrl}${import.meta.env.VITE_PRODUCTION_BATCHES_ENDPOINT_PATH}`, field: 'batchNumber', route: '/qa/batch-release?code={code}' }
         ],
         searchExample: 'SOP-QA-014'
     },
@@ -46,8 +46,8 @@ export const workspaceEnvironments = {
             { to: '/production/tasks', label: 'nav.tasks' }
         ],
         search: [
-            { url: `${fakeApiUrl}${import.meta.env.VITE_BATCHES_ENDPOINT_PATH}`, route: '/production/batches/{code}' },
-            { url: `${fakeApiUrl}${import.meta.env.VITE_PRODUCTION_ORDERS_ENDPOINT_PATH}`, route: '/production/orders/{code}' },
+            { url: `${platformApiUrl}${import.meta.env.VITE_PRODUCTION_BATCHES_ENDPOINT_PATH}`, field: 'batchNumber', route: '/production/batches/{code}' },
+            { url: `${platformApiUrl}${import.meta.env.VITE_PRODUCTION_ORDERS_ENDPOINT_PATH}`, route: '/production/orders/{code}' },
             { url: `${platformApiUrl}${import.meta.env.VITE_SENSORS_ENDPOINT_PATH}`, route: '/production/sensors/{code}' }
         ],
         searchExample: 'B-26041'

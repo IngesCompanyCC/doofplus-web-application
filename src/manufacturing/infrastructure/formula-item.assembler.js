@@ -1,45 +1,36 @@
 import {FormulaItem} from "../domain/model/formula-item.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 /**
- * Maps formula items resources of the API to and from FormulaItem entities.
+ * Maps the items that come inside the master formulas of the DoofPlus Platform to FormulaItem entities.
  *
  * @class FormulaItemAssembler
  */
 export class FormulaItemAssembler {
     /**
-     * @param {Object} resource - Resource from the API.
+     * @param {Object} resource - Item resource (component or parameter).
+     * @param {number} formulaId - Identifier of the master formula that contains it.
      * @returns {FormulaItem} The entity.
      */
-    static toEntityFromResource(resource) {
-        return new FormulaItem({...resource});
+    static toEntityFromResource(resource, formulaId) {
+        return new FormulaItem({
+            id: resource.id,
+            formulaId,
+            kind: EnumValue.toView(resource.kind),
+            name: resource.name,
+            role: resource.role ?? '',
+            target: resource.target ?? '',
+            tolerance: resource.tolerance ?? '',
+            control: resource.control ?? ''
+        });
     }
 
     /**
-     * @param {import('axios').AxiosResponse<Array<Object>>} response - HTTP response with the resources.
-     * @returns {Array<FormulaItem>} The entities, or an empty array when the response failed.
+     * @param {Array<Object>} formulaResources - Master formula resources with their items.
+     * @returns {Array<FormulaItem>} The items of every formula.
      */
-    static toEntitiesFromResponse(response) {
-        if (response.status !== 200) {
-            console.error(`${response.status}, ${response.statusText}`);
-            return [];
-        }
-        return response.data.map(resource => this.toEntityFromResource(resource));
-    }
-
-    /**
-     * @param {FormulaItem} entity - The entity.
-     * @returns {Object} The resource sent to the API.
-     */
-    static toResourceFromEntity(entity) {
-        return {
-            id: entity.id,
-            formulaId: entity.formulaId,
-            kind: entity.kind,
-            name: entity.name,
-            role: entity.role,
-            target: entity.target,
-            tolerance: entity.tolerance,
-            control: entity.control
-        };
+    static toEntitiesFromFormulas(formulaResources) {
+        return formulaResources.flatMap(formula =>
+            (formula.items ?? []).map(item => this.toEntityFromResource(item, formula.id)));
     }
 }

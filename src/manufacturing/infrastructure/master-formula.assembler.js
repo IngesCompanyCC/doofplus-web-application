@@ -1,17 +1,27 @@
 import {MasterFormula} from "../domain/model/master-formula.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 /**
- * Maps master formulas resources of the API to and from MasterFormula entities.
+ * Maps master formula resources of the DoofPlus Platform to MasterFormula entities.
+ * The items of each formula are mapped by the FormulaItemAssembler.
  *
  * @class MasterFormulaAssembler
  */
 export class MasterFormulaAssembler {
     /**
-     * @param {Object} resource - Resource from the API.
-     * @returns {MasterFormula} The entity.
+     * @param {Object} resource - Master formula resource.
+     * @returns {MasterFormula} The entity, with its status in kebab-case (approved, draft...).
      */
     static toEntityFromResource(resource) {
-        return new MasterFormula({...resource});
+        return new MasterFormula({
+            id: resource.id,
+            productCode: resource.productCode,
+            version: resource.version,
+            status: EnumValue.toView(resource.status),
+            approvedBy: resource.approvedBy ?? '',
+            approvedAt: resource.approvedAt ?? '',
+            batchSize: resource.batchSize
+        });
     }
 
     /**
@@ -28,7 +38,7 @@ export class MasterFormulaAssembler {
 
     /**
      * @param {MasterFormula} entity - The entity.
-     * @returns {Object} The resource sent to the API.
+     * @returns {Object} The resource.
      */
     static toResourceFromEntity(entity) {
         return {

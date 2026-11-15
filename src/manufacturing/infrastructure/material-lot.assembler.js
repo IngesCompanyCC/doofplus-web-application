@@ -1,17 +1,35 @@
 import {MaterialLot} from "../domain/model/material-lot.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 /**
- * Maps material lots resources of the API to and from MaterialLot entities.
+ * Maps raw-material lot resources of the DoofPlus Platform to and from MaterialLot entities.
  *
  * @class MaterialLotAssembler
  */
 export class MaterialLotAssembler {
     /**
-     * @param {Object} resource - Resource from the API.
-     * @returns {MaterialLot} The entity.
+     * @param {Object} resource - Raw-material lot resource.
+     * @returns {MaterialLot} The entity, with its category and statuses in kebab-case.
      */
     static toEntityFromResource(resource) {
-        return new MaterialLot({...resource});
+        return new MaterialLot({
+            id: resource.id,
+            code: resource.code,
+            receiptCode: resource.receiptCode ?? '',
+            material: resource.material,
+            category: EnumValue.toView(resource.category),
+            supplier: resource.supplier ?? '',
+            supplierLot: resource.supplierLot ?? '',
+            quantity: resource.quantity ?? '',
+            expiryDate: resource.expiryDate ?? '',
+            storageLocation: resource.storageLocation ?? '',
+            certificate: resource.certificate ?? '',
+            status: EnumValue.toView(resource.status),
+            packagingVerified: resource.packagingVerified,
+            identityVerified: resource.identityVerified,
+            samplingStatus: EnumValue.toView(resource.samplingStatus),
+            allocatedBatch: resource.allocatedBatch ?? ''
+        });
     }
 
     /**
@@ -28,26 +46,34 @@ export class MaterialLotAssembler {
 
     /**
      * @param {MaterialLot} entity - The entity.
-     * @returns {Object} The resource sent to the API.
+     * @returns {Object} The resource to record the receipt of the lot.
      */
     static toResourceFromEntity(entity) {
         return {
-            id: entity.id,
             code: entity.code,
-            receiptCode: entity.receiptCode,
+            receiptCode: entity.receiptCode || null,
             material: entity.material,
             category: entity.category,
-            supplier: entity.supplier,
-            supplierLot: entity.supplierLot,
-            quantity: entity.quantity,
+            supplier: entity.supplier || null,
+            supplierLot: entity.supplierLot || null,
+            quantity: entity.quantity || null,
             expiryDate: entity.expiryDate,
-            storageLocation: entity.storageLocation,
-            certificate: entity.certificate,
-            status: entity.status,
+            storageLocation: entity.storageLocation || null,
+            certificate: entity.certificate || null
+        };
+    }
+
+    /**
+     * @param {MaterialLot} entity - The entity.
+     * @param {string} samplingStatus - New sampling status (pending, requested or done).
+     * @returns {Object} The resource to record the inspection of the lot.
+     */
+    static toInspectionResourceFromEntity(entity, samplingStatus) {
+        return {
             packagingVerified: entity.packagingVerified,
             identityVerified: entity.identityVerified,
-            samplingStatus: entity.samplingStatus,
-            allocatedBatch: entity.allocatedBatch
+            samplingStatus,
+            storageLocation: entity.storageLocation || null
         };
     }
 }

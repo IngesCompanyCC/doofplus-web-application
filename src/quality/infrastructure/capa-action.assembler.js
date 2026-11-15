@@ -1,4 +1,5 @@
 import {CapaAction} from "../domain/model/capa-action.entity.js";
+import {fromPlatform} from "./platform-resource.js";
 
 /**
  * Maps capa actions resources of the API to and from CapaAction entities.
@@ -11,7 +12,7 @@ export class CapaActionAssembler {
      * @returns {CapaAction} The entity.
      */
     static toEntityFromResource(resource) {
-        return new CapaAction({...resource});
+        return new CapaAction(fromPlatform(resource, ["type", "status"]));
     }
 
     /**

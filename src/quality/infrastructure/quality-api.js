@@ -1,4 +1,4 @@
-import {BaseApi} from "../../shared/infrastructure/base-api.js";
+import {BaseApi, platformApiUrl} from "../../shared/infrastructure/base-api.js";
 import {BaseEndpoint} from "../../shared/infrastructure/base-endpoint.js";
 
 const qualityDocumentsEndpointPath = import.meta.env.VITE_QUALITY_DOCUMENTS_ENDPOINT_PATH;
@@ -17,7 +17,7 @@ const traceabilityGapsEndpointPath = import.meta.env.VITE_TRACEABILITY_GAPS_ENDP
 const deviationTrendsEndpointPath = import.meta.env.VITE_DEVIATION_TRENDS_ENDPOINT_PATH;
 
 /**
- * Infrastructure gateway for the Quality & Compliance endpoints.
+ * Infrastructure gateway for the Quality & Compliance endpoints of the DoofPlus Platform.
  *
  * @class QualityApi
  * @extends BaseApi
@@ -40,7 +40,7 @@ export class QualityApi extends BaseApi {
 
     /** Creates one endpoint client per collection. */
     constructor() {
-        super();
+        super(platformApiUrl);
         this.#qualityDocumentsEndpoint = new BaseEndpoint(this, qualityDocumentsEndpointPath);
         this.#deviationsEndpoint = new BaseEndpoint(this, deviationsEndpointPath);
         this.#evidenceEndpoint = new BaseEndpoint(this, evidenceEndpointPath);

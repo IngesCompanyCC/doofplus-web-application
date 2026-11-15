@@ -1,4 +1,5 @@
 import {TraceabilityGap} from "../domain/model/traceability-gap.entity.js";
+import {fromPlatform} from "./platform-resource.js";
 
 /**
  * Maps traceability gaps resources of the API to and from TraceabilityGap entities.
@@ -11,7 +12,7 @@ export class TraceabilityGapAssembler {
      * @returns {TraceabilityGap} The entity.
      */
     static toEntityFromResource(resource) {
-        return new TraceabilityGap({...resource});
+        return new TraceabilityGap(fromPlatform(resource, ["status"]));
     }
 
     /**

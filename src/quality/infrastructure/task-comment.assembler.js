@@ -1,4 +1,5 @@
 import {TaskComment} from "../domain/model/task-comment.entity.js";
+import {fromPlatform} from "./platform-resource.js";
 
 /**
  * Maps task comments resources of the API to and from TaskComment entities.
@@ -11,7 +12,7 @@ export class TaskCommentAssembler {
      * @returns {TaskComment} The entity.
      */
     static toEntityFromResource(resource) {
-        return new TaskComment({...resource});
+        return new TaskComment(fromPlatform(resource));
     }
 
     /**

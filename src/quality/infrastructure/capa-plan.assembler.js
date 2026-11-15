@@ -1,4 +1,5 @@
 import {CapaPlan} from "../domain/model/capa-plan.entity.js";
+import {fromPlatform} from "./platform-resource.js";
 
 /**
  * Maps capa plans resources of the API to and from CapaPlan entities.
@@ -11,7 +12,7 @@ export class CapaPlanAssembler {
      * @returns {CapaPlan} The entity.
      */
     static toEntityFromResource(resource) {
-        return new CapaPlan({...resource});
+        return new CapaPlan(fromPlatform(resource, ["status"]));
     }
 
     /**

@@ -43,6 +43,8 @@ const useOrganizationsStore = defineStore('organizations', () => {
      * @type {import('vue').Ref<string>}
      */
     const contactStep = ref('form');
+    /** @type {import('vue').Ref<boolean>} Whether the last contact inquiry could not be sent. */
+    const contactFailed = ref(false);
     /** @type {import('vue').Ref<boolean>} Whether a request is running. */
     const loading = ref(false);
     /** @type {import('vue').Ref<Array<Error>>} Errors of the last requests. */
@@ -151,18 +153,23 @@ const useOrganizationsStore = defineStore('organizations', () => {
      */
     function sendContactInquiry({fullName, email, message}) {
         loading.value = true;
+        contactFailed.value = false;
         const resource = ContactInquiryAssembler.toResourceFromEntity(new ContactInquiry({
             fullName, email, message, status: 'received', receivedAt: new Date().toISOString()
         }));
         return organizationsApi.createContactInquiry(resource)
             .then(() => contactStep.value = 'sent')
-            .catch(error => errors.value.push(error))
+            .catch(error => {
+                contactFailed.value = true;
+                errors.value.push(error);
+            })
             .finally(() => loading.value = false);
     }
 
     /** Returns the Contact us form to its first step. */
     function resetContact() {
         contactStep.value = 'form';
+        contactFailed.value = false;
     }
 
     return {
@@ -172,6 +179,7 @@ const useOrganizationsStore = defineStore('organizations', () => {
         currentProfile,
         registrationStep,
         contactStep,
+        contactFailed,
         loading,
         errors,
         fetchOrganization,

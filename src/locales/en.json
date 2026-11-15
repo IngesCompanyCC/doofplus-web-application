@@ -17,11 +17,9 @@
     "all-environments": "All environments",
     "back-to-sign-in": "Back to sign in",
     "help": "Help & documentation",
-    "search": "Search batches, documents, people",
     "utc": "All times UTC",
     "role-based": "Role-based permissions",
     "contact-us": "Contact us",
-    "_q": "Questions about DoofPlus?",
     "search-qa": "Search by document or batch code",
     "search-production": "Search by batch, order or sensor code",
     "search-empty": "No record with the code {code}. Enter the exact code, for example {example}.",
@@ -658,7 +656,11 @@
       "privacy": "We only use your data to answer this inquiry.",
       "sent-title": "Inquiry received",
       "sent-text": "Thank you. We registered your inquiry and will answer you at {email}.",
-      "send-another": "Send another inquiry"
+      "send-another": "Send another inquiry",
+      "sending": "Sending…",
+      "send-error": "We could not send your inquiry. Try again in a few minutes.",
+      "back-to-sign-in": "Back to sign in",
+      "channels-label": "Contact channels"
     }
   },
   "monitoring": {

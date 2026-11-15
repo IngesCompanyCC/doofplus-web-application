@@ -4,12 +4,12 @@ import {BaseEndpoint} from "../../shared/infrastructure/base-endpoint.js";
 const signInEndpointPath = import.meta.env.VITE_SIGN_IN_ENDPOINT_PATH;
 const signUpEndpointPath = import.meta.env.VITE_SIGN_UP_ENDPOINT_PATH;
 const usersEndpointPath = import.meta.env.VITE_USERS_ENDPOINT_PATH;
-const roleProfilesEndpointPath = import.meta.env.VITE_ROLE_PROFILES_ENDPOINT_PATH;
+const rolesEndpointPath = import.meta.env.VITE_ROLES_ENDPOINT_PATH;
 const invitationsEndpointPath = import.meta.env.VITE_INVITATIONS_ENDPOINT_PATH;
 
 /**
  * Infrastructure gateway for the IAM endpoints.
- * Sign-in, sign-up and users use the DoofPlus Platform; role profiles and invitations still use the fake API.
+ * Sign-in, sign-up, users, roles and invitations of the DoofPlus Platform.
  *
  * @class IamApi
  * @extends BaseApi
@@ -19,13 +19,12 @@ export class IamApi extends BaseApi {
     #roleProfilesEndpoint;
     #invitationsEndpoint;
 
-    /** Creates the endpoint clients for users (platform), role profiles and invitations (fake API). */
+    /** Creates the endpoint clients for users, roles and invitations. */
     constructor() {
         super(platformApiUrl);
-        const fakeApi = new BaseApi();
         this.#usersEndpoint = new BaseEndpoint(this, usersEndpointPath);
-        this.#roleProfilesEndpoint = new BaseEndpoint(fakeApi, roleProfilesEndpointPath);
-        this.#invitationsEndpoint = new BaseEndpoint(fakeApi, invitationsEndpointPath);
+        this.#roleProfilesEndpoint = new BaseEndpoint(this, rolesEndpointPath);
+        this.#invitationsEndpoint = new BaseEndpoint(this, invitationsEndpointPath);
     }
 
     /**
@@ -59,7 +58,7 @@ export class IamApi extends BaseApi {
     }
 
     /**
-     * Retrieves the role profiles of the role-based access control.
+     * Retrieves the roles of the role-based access control (only signed-in users).
      * @returns {Promise<import('axios').AxiosResponse<Array<Object>>>} HTTP response with the role profile resources.
      */
     getRoleProfiles() {
@@ -67,11 +66,12 @@ export class IamApi extends BaseApi {
     }
 
     /**
-     * Retrieves the invitations sent by the administrator.
+     * Retrieves the invitations sent by the administrators of an organization.
+     * @param {number} organizationId - Identifier of the organization.
      * @returns {Promise<import('axios').AxiosResponse<Array<Object>>>} HTTP response with the invitation resources.
      */
-    getInvitations() {
-        return this.#invitationsEndpoint.getAll();
+    getInvitations(organizationId) {
+        return this.http.get(invitationsEndpointPath, {params: {organizationId}});
     }
 
     /**

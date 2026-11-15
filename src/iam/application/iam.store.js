@@ -180,7 +180,7 @@ const useIamStore = defineStore('iam', () => {
     /** Loads the users, role profiles and invitations shown in the users and profiles page. */
     function fetchDirectory() {
         loading.value = true;
-        Promise.all([iamApi.getUsers(), iamApi.getRoleProfiles(), iamApi.getInvitations()])
+        Promise.all([iamApi.getUsers(), iamApi.getRoleProfiles(), iamApi.getInvitations(currentUser.value?.organizationId)])
             .then(([usersResponse, profilesResponse, invitationsResponse]) => {
                 users.value = UserAssembler.toEntitiesFromResponse(usersResponse)
                     .filter(user => user.organizationId === currentUser.value?.organizationId);
@@ -210,7 +210,7 @@ const useIamStore = defineStore('iam', () => {
     function addInvitation(invitation, router) {
         loading.value = true;
         const {id, ...resource} = InvitationAssembler.toResourceFromEntity(invitation);
-        iamApi.createInvitation(resource)
+        iamApi.createInvitation({...resource, organizationId: currentUser.value?.organizationId})
             .then(response => {
                 const created = InvitationAssembler.toEntityFromResource(response.data);
                 invitations.value.push(created);

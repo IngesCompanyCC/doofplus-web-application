@@ -1,8 +1,9 @@
 import axios from "axios";
+import {iamTokenInterceptor} from "../../iam/infrastructure/iam-token.interceptor.js";
 
-/** DoofPlus Platform (RESTful Web Services): Organizations and IoT Monitoring. */
+/** DoofPlus Platform (RESTful Web Services): IAM (sign-in, sign-up, users), Organizations, IoT Monitoring and Subscriptions. */
 export const platformApiUrl = import.meta.env.VITE_PLATFORM_API_URL;
-/** Fake API (json-server) for the bounded contexts not connected yet: IAM, Manufacturing, Quality and Subscriptions. */
+/** Fake API (json-server) for the resources not connected yet: IAM profiles and invitations, Manufacturing and Quality. */
 export const fakeApiUrl = import.meta.env.VITE_FAKE_API_URL;
 
 /**
@@ -29,6 +30,8 @@ export class BaseApi {
             baseURL: baseUrl,
             headers: { 'Content-Type': 'application/json' }
         });
+        // The JWT of the signed-in user goes as a Bearer token to the DoofPlus Platform, not to the fake API.
+        if (baseUrl === platformApiUrl) this.#http.interceptors.request.use(iamTokenInterceptor);
     }
 
     /**

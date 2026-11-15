@@ -1,4 +1,5 @@
 import {ContactInquiry} from "../domain/model/contact-inquiry.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 /**
  * Maps contact inquiry resources of the API to and from ContactInquiry entities.
@@ -11,7 +12,7 @@ export class ContactInquiryAssembler {
      * @returns {ContactInquiry} The entity.
      */
     static toEntityFromResource(resource) {
-        return new ContactInquiry({...resource});
+        return new ContactInquiry({...resource, status: EnumValue.toView(resource.status)});
     }
 
     /**
@@ -23,7 +24,7 @@ export class ContactInquiryAssembler {
             fullName: entity.fullName,
             email: entity.email,
             message: entity.message,
-            status: entity.status,
+            status: EnumValue.toPlatform(entity.status),
             receivedAt: entity.receivedAt
         };
     }

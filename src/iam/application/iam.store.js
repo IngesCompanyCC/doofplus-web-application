@@ -5,7 +5,7 @@ import {UserAssembler} from "../infrastructure/user.assembler.js";
 import {RoleProfileAssembler} from "../infrastructure/role-profile.assembler.js";
 import {InvitationAssembler} from "../infrastructure/invitation.assembler.js";
 import {User} from "../domain/model/user.entity.js";
-import {SignInCommand} from "../domain/model/sign-in.command.js";
+import {TOKEN_KEY} from "../infrastructure/iam-token.interceptor.js";
 import {homeOf} from "../../shared/presentation/workspace-environments.js";
 
 const iamApi = new IamApi();
@@ -23,6 +23,41 @@ const restoreSession = () => {
         return null;
     }
 };
+
+/**
+ * Sends a sign-in request to the DoofPlus Platform and turns its answer into an outcome.
+ * The platform answers 401 with the reason in the detail of the problem.
+ * @param {string} email - Work email of the user.
+ * @param {string} password - Password of the user.
+ * @param {string} [twoFactorCode] - Six-digit code; omitted in the first step.
+ * @returns {Promise<{status: string, user?: User, token?: string}>} signed-in (with the user and its JWT),
+ *     two-factor-required, invalid-credentials or invalid-two-factor-code.
+ */
+const requestSignIn = (email, password, twoFactorCode) =>
+    iamApi.signIn(email, password, twoFactorCode)
+        .then(response => ({
+            status: 'signed-in',
+            user: UserAssembler.toEntityFromResource(response.data),
+            token: response.data.token
+        }))
+        .catch(error => {
+            if (error.response?.status !== 401) throw error;
+            const reason = error.response.data?.detail ?? error.response.data?.details;
+            if (reason === 'two-factor-required' || reason === 'invalid-two-factor-code') return {status: reason};
+            return {status: 'invalid-credentials'};
+        });
+
+/**
+ * Builds the user shown in the two-factor step: the platform reveals the account only after the code.
+ * @param {string} email - Work email entered by the user.
+ * @returns {User} A user with the email and a name taken from it (maria.mexico becomes Maria Mexico).
+ */
+const pendingUserFromEmail = email => new User({
+    id: 0, initials: '', email, role: '', environment: '', facility: '', status: '', organizationId: 0,
+    organizationName: '', plant: '', privilege: '',
+    fullName: email.split('@')[0].split(/[._-]+/).filter(Boolean)
+        .map(part => part[0].toUpperCase() + part.slice(1)).join(' ')
+});
 
 /**
  * Application service store for the IAM bounded context.
@@ -58,58 +93,80 @@ const useIamStore = defineStore('iam', () => {
     const invitations = ref([]);
     /** @type {import('vue').ComputedRef<Array>} Invitations that were not accepted yet. */
     const pendingInvitations = computed(() => invitations.value.filter(invitation => invitation.status === 'pending'));
+    /** Credentials kept in memory between the password step and the two-factor step. */
+    let pendingCredentials = null;
 
     /**
-     * Validates the credentials of the command. A valid user continues to the two-factor step.
+     * Sends the credentials to the DoofPlus Platform. A user with two-factor authentication continues to the
+     * code step; a user without it signs in at once.
      * @param {import('../domain/model/sign-in.command.js').SignInCommand} signInCommand - Credentials and requested environment.
+     * @param {import('vue-router').Router} [router] - Router used to open the workspace when no code is needed.
      */
-    function signIn(signInCommand) {
+    function signIn(signInCommand, router) {
         loading.value = true;
-        iamApi.findUsersByCredentials(signInCommand)
-            .then(response => {
-                const [user] = UserAssembler.toEntitiesFromResponse(response);
-                if (!user) {
-                    signInStep.value = 'invalid-credentials';
+        requestSignIn(signInCommand.email, signInCommand.password)
+            .then(result => {
+                requestedEnvironment.value = signInCommand.environment;
+                errors.value = [];
+                if (result.status === 'two-factor-required') {
+                    pendingCredentials = {email: signInCommand.email, password: signInCommand.password};
+                    pendingUser.value = pendingUserFromEmail(signInCommand.email);
+                    signInStep.value = 'two-factor';
                     return;
                 }
-                pendingUser.value = user;
-                requestedEnvironment.value = signInCommand.environment;
-                signInStep.value = 'two-factor';
-                errors.value = [];
+                completeSignIn(result, router);
             })
             .catch(error => errors.value.push(error))
             .finally(() => loading.value = false);
     }
 
     /**
-     * Checks the two-factor code. The session opens only if the role of the user belongs to the requested environment.
+     * Sends the two-factor code with the credentials of the first step. The DoofPlus Platform answers the user
+     * and its JWT only when the code is right.
      * @param {string} code - Six-digit code from the authenticator app.
      * @param {import('vue-router').Router} router - Router used to open the workspace.
      */
     function verifyTwoFactorCode(code, router) {
-        const user = pendingUser.value;
-        if (!user) {
+        const credentials = pendingCredentials;
+        if (!credentials) {
             signInStep.value = 'credentials';
             return;
         }
         loading.value = true;
-        iamApi.findUsersByTwoFactorCode(user.id, code)
-            .then(response => {
-                if (!UserAssembler.toEntitiesFromResponse(response).length) {
-                    signInStep.value = 'invalid-code';
-                    return;
-                }
-                if (user.environment !== requestedEnvironment.value) {
-                    signInStep.value = 'not-authorized';
-                    return;
-                }
-                currentUser.value = user;
-                localStorage.setItem(SESSION_KEY, JSON.stringify(UserAssembler.toResourceFromEntity(user)));
-                resetSignIn();
-                router.push(homeOf(user.environment));
-            })
+        requestSignIn(credentials.email, credentials.password, code)
+            .then(result => completeSignIn(result, router))
             .catch(error => errors.value.push(error))
             .finally(() => loading.value = false);
+    }
+
+    /**
+     * Opens the session when the platform signed the user in, or moves the form to the step of the failure.
+     * The session opens only if the role of the user belongs to the requested environment.
+     * @param {{status: string, user?: User, token?: string}} result - Outcome of the sign-in request.
+     * @param {import('vue-router').Router} [router] - Router used to open the workspace.
+     */
+    function completeSignIn(result, router) {
+        if (result.status === 'invalid-two-factor-code') {
+            signInStep.value = 'invalid-code';
+            return;
+        }
+        if (result.status !== 'signed-in') {
+            pendingCredentials = null;
+            signInStep.value = 'invalid-credentials';
+            return;
+        }
+        const user = result.user;
+        if (user.environment !== requestedEnvironment.value) {
+            pendingCredentials = null;
+            pendingUser.value = user;
+            signInStep.value = 'not-authorized';
+            return;
+        }
+        currentUser.value = user;
+        localStorage.setItem(SESSION_KEY, JSON.stringify(UserAssembler.toResourceFromEntity(user)));
+        localStorage.setItem(TOKEN_KEY, result.token);
+        resetSignIn();
+        router?.push(homeOf(user.environment));
     }
 
     /** Loads the users of the organization of the signed-in user, for the administration pages. */
@@ -123,7 +180,7 @@ const useIamStore = defineStore('iam', () => {
     /** Loads the users, role profiles and invitations shown in the users and profiles page. */
     function fetchDirectory() {
         loading.value = true;
-        Promise.all([iamApi.getUsers(), iamApi.getRoleProfiles(), iamApi.getInvitations()])
+        Promise.all([iamApi.getUsers(), iamApi.getRoleProfiles(), iamApi.getInvitations(currentUser.value?.organizationId)])
             .then(([usersResponse, profilesResponse, invitationsResponse]) => {
                 users.value = UserAssembler.toEntitiesFromResponse(usersResponse)
                     .filter(user => user.organizationId === currentUser.value?.organizationId);
@@ -153,7 +210,7 @@ const useIamStore = defineStore('iam', () => {
     function addInvitation(invitation, router) {
         loading.value = true;
         const {id, ...resource} = InvitationAssembler.toResourceFromEntity(invitation);
-        iamApi.createInvitation(resource)
+        iamApi.createInvitation({...resource, organizationId: currentUser.value?.organizationId})
             .then(response => {
                 const created = InvitationAssembler.toEntityFromResource(response.data);
                 invitations.value.push(created);
@@ -164,7 +221,7 @@ const useIamStore = defineStore('iam', () => {
     }
 
     /**
-     * Creates the first administrator of a newly registered organization. The account stays invited
+     * Creates the first administrator of a newly registered organization with the sign-up of the DoofPlus Platform. The account stays invited
      * until the administrator verifies the email and enrolls two-factor authentication.
      * @param {Object} administrator - Organization and personal data of the administrator.
      * @param {number} administrator.organizationId - Identifier of the new organization.
@@ -194,8 +251,9 @@ const useIamStore = defineStore('iam', () => {
     function verifyPassword(password) {
         const user = currentUser.value;
         if (!user) return Promise.resolve(false);
-        return iamApi.findUsersByCredentials(new SignInCommand({email: user.email, password, environment: user.environment}))
-            .then(response => UserAssembler.toEntitiesFromResponse(response).some(found => found.id === user.id))
+        // The platform answers two-factor-required only after it checked the password.
+        return requestSignIn(user.email, password)
+            .then(result => result.status === 'signed-in' || result.status === 'two-factor-required')
             .catch(error => {
                 errors.value.push(error);
                 return false;
@@ -204,6 +262,7 @@ const useIamStore = defineStore('iam', () => {
 
     /** Returns the sign-in flow to the credentials step. */
     function resetSignIn() {
+        pendingCredentials = null;
         pendingUser.value = null;
         requestedEnvironment.value = null;
         signInStep.value = 'credentials';
@@ -215,6 +274,7 @@ const useIamStore = defineStore('iam', () => {
      */
     function signOut(router) {
         localStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem(TOKEN_KEY);
         currentUser.value = null;
         resetSignIn();
         router.push({name: 'iam-environment-selection'});

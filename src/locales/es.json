@@ -17,11 +17,9 @@
     "all-environments": "Todos los entornos",
     "back-to-sign-in": "Volver al inicio de sesión",
     "help": "Ayuda y documentación",
-    "search": "Buscar lotes, documentos, personas",
     "utc": "Horas en UTC",
     "role-based": "Permisos por rol",
     "contact-us": "Contáctanos",
-    "_q": "¿Dudas sobre DoofPlus?",
     "search-qa": "Buscar por código de documento o de lote",
     "search-production": "Buscar por código de lote, orden o sensor",
     "search-empty": "No hay registros con el código {code}. Ingresa el código exacto, por ejemplo {example}.",
@@ -635,10 +633,10 @@
       "title": "Envíanos tu consulta",
       "subtitle": "Cuéntanos sobre tu laboratorio y lo que necesitas. El equipo de DoofPlus te responde por correo.",
       "panel-title": "Habla con el equipo de DoofPlus",
-      "panel-text": "¿Dudas sobre los planes, una demo guiada o cómo DoofPlus apoya el cumplimiento de DIGEMID y BPM? Estamos para ayudarte.",
+      "panel-text": "¿Dudas sobre los planes, los entornos de cada rol o cómo DoofPlus apoya el cumplimiento de DIGEMID y BPM? Estamos para ayudarte.",
       "topics": {
         "plans": "Planes y precios para tu laboratorio",
-        "demo": "Una demo guiada para tus equipos de Calidad y Producción",
+        "environments": "Entornos de Calidad, Producción y Administración para tus equipos",
         "compliance": "Cumplimiento de DIGEMID y BPM",
         "support": "Soporte técnico e incorporación"
       },
@@ -658,7 +656,11 @@
       "privacy": "Solo usamos tus datos para responder esta consulta.",
       "sent-title": "Consulta recibida",
       "sent-text": "Gracias. Registramos tu consulta y te responderemos a {email}.",
-      "send-another": "Enviar otra consulta"
+      "send-another": "Enviar otra consulta",
+      "sending": "Enviando…",
+      "send-error": "No pudimos enviar tu consulta. Inténtalo de nuevo en unos minutos.",
+      "back-to-sign-in": "Volver al inicio de sesión",
+      "channels-label": "Canales de contacto"
     }
   },
   "monitoring": {

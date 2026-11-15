@@ -11,7 +11,7 @@ export class PlanAssembler {
      * @returns {Plan} The entity.
      */
     static toEntityFromResource(resource) {
-        return new Plan({...resource});
+        return new Plan({...resource, key: resource.planKey});
     }
 
     /**
@@ -33,7 +33,7 @@ export class PlanAssembler {
     static toResourceFromEntity(entity) {
         return {
             id: entity.id,
-            key: entity.key,
+            planKey: entity.key,
             name: entity.name,
             monthlyPrice: entity.monthlyPrice,
             annualPrice: entity.annualPrice,

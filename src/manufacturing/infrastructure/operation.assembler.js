@@ -1,42 +1,46 @@
 import {Operation} from "../domain/model/operation.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 /**
- * Maps operations resources of the API to and from Operation entities.
+ * Maps the operations that come inside the production orders of the DoofPlus Platform to Operation entities.
+ * The platform identifies an operation by its order and its sequence.
  *
  * @class OperationAssembler
  */
 export class OperationAssembler {
     /**
-     * @param {Object} resource - Resource from the API.
-     * @returns {Operation} The entity.
+     * @param {Object} resource - Operation resource.
+     * @param {number} orderId - Identifier of the production order that contains it.
+     * @returns {Operation} The entity; its id joins the order and the sequence.
      */
-    static toEntityFromResource(resource) {
-        return new Operation({...resource});
+    static toEntityFromResource(resource, orderId) {
+        return new Operation({
+            id: orderId * 1000 + resource.sequence,
+            orderId,
+            sequence: resource.sequence,
+            name: resource.name,
+            equipment: resource.equipment ?? '',
+            progress: resource.progress,
+            status: EnumValue.toView(resource.status),
+            reference: resource.reference ?? ''
+        });
     }
 
     /**
-     * @param {import('axios').AxiosResponse<Array<Object>>} response - HTTP response with the resources.
-     * @returns {Array<Operation>} The entities, or an empty array when the response failed.
+     * @param {Array<Object>} orderResources - Production order resources with their operations.
+     * @returns {Array<Operation>} The operations of every order.
      */
-    static toEntitiesFromResponse(response) {
-        if (response.status !== 200) {
-            console.error(`${response.status}, ${response.statusText}`);
-            return [];
-        }
-        return response.data.map(resource => this.toEntityFromResource(resource));
+    static toEntitiesFromOrders(orderResources) {
+        return orderResources.flatMap(order =>
+            (order.operations ?? []).map(operation => this.toEntityFromResource(operation, order.id)));
     }
 
     /**
      * @param {Operation} entity - The entity.
-     * @returns {Object} The resource sent to the API.
+     * @returns {Object} The resource to record the progress of the operation.
      */
     static toResourceFromEntity(entity) {
         return {
-            id: entity.id,
-            orderId: entity.orderId,
-            sequence: entity.sequence,
-            name: entity.name,
-            equipment: entity.equipment,
             progress: entity.progress,
             status: entity.status,
             reference: entity.reference

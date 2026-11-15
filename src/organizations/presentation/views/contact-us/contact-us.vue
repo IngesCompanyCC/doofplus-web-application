@@ -16,7 +16,7 @@ const channels = [
   { key: 'location', icon: 'pi pi-map-marker', value: 'Lima, Perú' }
 ];
 /** Topics the visitor can ask about, shown in the side panel. */
-const topics = ['plans', 'demo', 'compliance', 'support'];
+const topics = ['plans', 'environments', 'compliance', 'support'];
 
 const form = reactive({ fullName: '', email: '', message: '' });
 /** Whether the form was submitted once, to show the validation messages. */
@@ -57,7 +57,7 @@ onMounted(() => store.resetContact());
           <i class="pi pi-check-circle" aria-hidden="true"></i>{{ t(`organizations.contact.topics.${topic}`) }}
         </li>
       </ul>
-      <ul class="channels">
+      <ul class="channels" :aria-label="t('organizations.contact.channels-label')">
         <li v-for="channel in channels" :key="channel.key">
           <i :class="channel.icon" aria-hidden="true"></i>
           <span>
@@ -76,7 +76,7 @@ onMounted(() => store.resetContact());
           <h1>{{ t('organizations.contact.sent-title') }}</h1>
           <p class="muted">{{ t('organizations.contact.sent-text', { email: form.email.trim().toLowerCase() }) }}</p>
           <pv-button :label="t('organizations.contact.send-another')" class="submit" @click="sendAnother"/>
-          <router-link :to="{ name: 'iam-environment-selection' }">{{ t('shell.back-to-sign-in') }} →</router-link>
+          <router-link :to="{ name: 'iam-environment-selection' }">{{ t('organizations.contact.back-to-sign-in') }} →</router-link>
         </div>
 
         <div v-else class="flex flex-column gap-3">
@@ -101,7 +101,9 @@ onMounted(() => store.resetContact());
                            :placeholder="t('organizations.contact.message-placeholder')"/>
               <small v-if="errors.message" class="error">{{ t('organizations.contact.message-error') }}</small>
             </div>
-            <pv-button type="submit" class="submit" :label="t('organizations.contact.send')" :loading="store.loading"/>
+            <small v-if="store.contactFailed" class="error" role="alert"><i class="pi pi-exclamation-triangle" aria-hidden="true"></i> {{ t('organizations.contact.send-error') }}</small>
+            <pv-button type="submit" class="submit" :label="t(store.loading ? 'organizations.contact.sending' : 'organizations.contact.send')"
+                       :loading="store.loading" :disabled="store.loading"/>
           </form>
 
           <p class="small muted">{{ t('organizations.contact.privacy') }}</p>

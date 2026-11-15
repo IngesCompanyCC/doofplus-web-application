@@ -1,4 +1,5 @@
 import {Organization} from "../domain/model/organization.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 /**
  * Maps organizations resources of the API to and from Organization entities.
@@ -11,7 +12,7 @@ export class OrganizationAssembler {
      * @returns {Organization} The entity.
      */
     static toEntityFromResource(resource) {
-        return new Organization({...resource});
+        return new Organization({...resource, status: EnumValue.toView(resource.status)});
     }
 
     /**
@@ -37,7 +38,7 @@ export class OrganizationAssembler {
             ruc: entity.ruc,
             region: entity.region,
             ownerName: entity.ownerName,
-            status: entity.status
+            status: EnumValue.toPlatform(entity.status)
         };
     }
 }

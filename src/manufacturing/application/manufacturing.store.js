@@ -10,14 +10,13 @@ import {BatchAssembler} from "../infrastructure/batch.assembler.js";
 import {BatchEventAssembler} from "../infrastructure/batch-event.assembler.js";
 import {MaterialLotAssembler} from "../infrastructure/material-lot.assembler.js";
 import {ProductionOrder} from "../domain/model/production-order.entity.js";
-import {BatchEvent} from "../domain/model/batch-event.entity.js";
 
 const manufacturingApi = new ManufacturingApi();
 
 /**
  * Application service store for the Manufacturing & Batch Management bounded context.
- * It holds products, master formulas, production orders, batches and raw-material lots, and applies
- * the manufacturing rules: unique batch codes, approved master formulas and operations in sequence.
+ * It holds products, master formulas, production orders, batches and raw-material lots of the DoofPlus Platform,
+ * and applies the manufacturing rules: unique batch codes, approved master formulas and operations in sequence.
  *
  * @returns {Object} Store state and actions.
  */
@@ -34,7 +33,7 @@ const useManufacturingStore = defineStore('manufacturing', () => {
     const operations = ref([]);
     /** @type {import('vue').Ref<Array<import('../domain/model/batch.entity.js').Batch>>} */
     const batches = ref([]);
-    /** @type {import('vue').Ref<Array<BatchEvent>>} */
+    /** @type {import('vue').Ref<Array<import('../domain/model/batch-event.entity.js').BatchEvent>>} */
     const batchEvents = ref([]);
     /** @type {import('vue').Ref<Array<import('../domain/model/material-lot.entity.js').MaterialLot>>} */
     const materialLots = ref([]);
@@ -49,29 +48,57 @@ const useManufacturingStore = defineStore('manufacturing', () => {
         return counts;
     }, {}));
 
-    /**
-     * Loads a collection of the fake API into a state array.
-     * @param {Promise<import('axios').AxiosResponse>} request - Request that returns the collection.
-     * @param {Object} assembler - Assembler that maps the response to entities.
-     * @param {import('vue').Ref<Array>} target - State that stores the entities.
-     */
-    const load = (request, assembler, target) => request
-        .then(response => target.value = assembler.toEntitiesFromResponse(response))
-        .catch(error => errors.value.push(error));
+    /** @param {Error} error - Error of a request, kept to show it. */
+    const keepError = (error) => errors.value.push(error);
 
-    /** Loads all the manufacturing collections. */
+    /**
+     * Adds to a product the version and the status of its formula: the approved one, or else the latest.
+     * @param {import('../domain/model/product.entity.js').Product} product - Product of the platform.
+     * @returns {import('../domain/model/product.entity.js').Product} The same product, with its formula.
+     */
+    const withFormula = (product) => {
+        const ofProduct = formulas.value.filter(formula => formula.productCode === product.code);
+        const formula = ofProduct.find(item => item.status === 'approved') ?? ofProduct[ofProduct.length - 1];
+        product.formulaVersion = formula?.version ?? '';
+        product.formulaStatus = formula?.status ?? 'none';
+        return product;
+    };
+
+    /**
+     * Replaces the events of a batch with the ones of its resource.
+     * @param {Object} resource - Production batch resource of the platform.
+     */
+    const replaceEvents = (resource) => {
+        batchEvents.value = batchEvents.value
+            .filter(event => event.batchCode !== resource.batchNumber)
+            .concat(BatchEventAssembler.toEntitiesFromBatches([resource]));
+    };
+
+    /**
+     * Loads all the manufacturing collections. The items come inside the formulas, the operations inside the
+     * orders and the events inside the batches; the batches need the orders to show their product.
+     */
     function fetchAll() {
         loading.value = true;
-        Promise.all([
-            load(manufacturingApi.getProducts(), ProductAssembler, products),
-            load(manufacturingApi.getMasterFormulas(), MasterFormulaAssembler, formulas),
-            load(manufacturingApi.getFormulaItems(), FormulaItemAssembler, formulaItems),
-            load(manufacturingApi.getProductionOrders(), ProductionOrderAssembler, orders),
-            load(manufacturingApi.getOperations(), OperationAssembler, operations),
-            load(manufacturingApi.getBatches(), BatchAssembler, batches),
-            load(manufacturingApi.getBatchEvents(), BatchEventAssembler, batchEvents),
-            load(manufacturingApi.getMaterialLots(), MaterialLotAssembler, materialLots)
-        ]).finally(() => loading.value = false);
+        const formulasLoaded = manufacturingApi.getMasterFormulas().then(response => {
+            formulas.value = MasterFormulaAssembler.toEntitiesFromResponse(response);
+            formulaItems.value = FormulaItemAssembler.toEntitiesFromFormulas(response.data);
+        });
+        const ordersLoaded = manufacturingApi.getProductionOrders().then(response => {
+            orders.value = ProductionOrderAssembler.toEntitiesFromResponse(response);
+            operations.value = OperationAssembler.toEntitiesFromOrders(response.data);
+        });
+        const productsLoaded = Promise.all([manufacturingApi.getProducts(), formulasLoaded.catch(() => null)])
+            .then(([response]) => products.value = ProductAssembler.toEntitiesFromResponse(response).map(withFormula));
+        const batchesLoaded = Promise.all([manufacturingApi.getBatches(), ordersLoaded.catch(() => null)])
+            .then(([response]) => {
+                batches.value = BatchAssembler.toEntitiesFromResponse(response, orders.value);
+                batchEvents.value = BatchEventAssembler.toEntitiesFromBatches(response.data);
+            });
+        const lotsLoaded = manufacturingApi.getMaterialLots()
+            .then(response => materialLots.value = MaterialLotAssembler.toEntitiesFromResponse(response));
+        Promise.all([formulasLoaded, ordersLoaded, productsLoaded, batchesLoaded, lotsLoaded].map(request => request.catch(keepError)))
+            .finally(() => loading.value = false);
     }
 
     /** @param {string} code - Product code. @returns {Object|undefined} The product. */
@@ -94,9 +121,10 @@ const useManufacturingStore = defineStore('manufacturing', () => {
     /** @param {string} code - Batch code. @returns {Object|undefined} The batch. */
     const batchByCode = (code) => batches.value.find(item => item.code === code);
 
-    /** @param {string} batchCode - Batch code. @returns {Array<BatchEvent>} Status history of the batch, oldest first. */
+    /** @param {string} batchCode - Batch code. @returns {Array} Status history of the batch, oldest first. */
     const eventsOfBatch = (batchCode) =>
-        batchEvents.value.filter(item => item.batchCode === batchCode).sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+        batchEvents.value.filter(item => item.batchCode === batchCode)
+            .sort((a, b) => String(a.occurredAt).localeCompare(String(b.occurredAt)));
 
     /** @param {string} batchCode - Batch code. @returns {Array} Raw-material lots allocated to the batch. */
     const lotsOfBatch = (batchCode) => materialLots.value.filter(item => item.allocatedBatch === batchCode);
@@ -110,8 +138,8 @@ const useManufacturingStore = defineStore('manufacturing', () => {
         if (products.value.some(item => item.code.toUpperCase() === product.code.toUpperCase())) return false;
         const {id, ...resource} = ProductAssembler.toResourceFromEntity(product);
         manufacturingApi.createProduct(resource)
-            .then(response => products.value.push(ProductAssembler.toEntityFromResource(response.data)))
-            .catch(error => errors.value.push(error));
+            .then(response => products.value.push(withFormula(ProductAssembler.toEntityFromResource(response.data))))
+            .catch(keepError);
         return true;
     }
 
@@ -129,45 +157,32 @@ const useManufacturingStore = defineStore('manufacturing', () => {
     }
 
     /**
-     * Adds an entry to the status history of a batch.
-     * @param {string} batchCode - Code of the batch.
-     * @param {string} title - What happened.
-     * @param {string} detail - Who or what was involved.
-     * @param {string} tone - Color of the entry.
-     */
-    function addEvent(batchCode, title, detail, tone) {
-        const event = new BatchEvent({batchCode, title, detail, occurredAt: new Date().toISOString(), tone});
-        const {id, ...resource} = BatchEventAssembler.toResourceFromEntity(event);
-        manufacturingApi.createBatchEvent(resource)
-            .then(response => batchEvents.value.push(BatchEventAssembler.toEntityFromResource(response.data)))
-            .catch(error => errors.value.push(error));
-    }
-
-    /**
-     * Creates a planned batch and its production order with the effective master formula.
+     * Creates the production order with the effective master formula and then its planned batch.
+     * The platform records the creation in the history of the batch.
      * @param {import('../domain/model/batch.entity.js').Batch} batch - Batch to create.
-     * @returns {Promise<void>} Resolves when the batch was created.
+     * @returns {Promise<void>} Resolves when the order and the batch were created.
      */
     function addBatch(batch) {
         const formula = effectiveFormula(batch.productCode);
         if (!formula) return Promise.resolve();
         loading.value = true;
-        const {id, ...batchResource} = BatchAssembler.toResourceFromEntity(batch);
+        const now = new Date().toISOString();
         const order = new ProductionOrder({
             code: batch.orderCode, productCode: batch.productCode, formulaId: formula.id, batchCode: batch.code,
-            plannedQuantity: batch.quantity, line: batch.line, status: 'planned',
-            plannedStart: new Date().toISOString(), plannedEnd: new Date().toISOString()
+            plannedQuantity: batch.quantity, line: batch.line, status: 'planned', plannedStart: now, plannedEnd: now
         });
-        const {id: orderId, ...orderResource} = ProductionOrderAssembler.toResourceFromEntity(order);
-        return Promise.all([
-            manufacturingApi.createBatch(batchResource).then(response => {
-                const created = BatchAssembler.toEntityFromResource(response.data);
-                batches.value.unshift(created);
-                addEvent(created.code, 'Created & materials allocated', created.owner, 'normal');
-            }),
-            manufacturingApi.createProductionOrder(orderResource)
-                .then(response => orders.value.push(ProductionOrderAssembler.toEntityFromResource(response.data)))
-        ]).catch(error => errors.value.push(error)).finally(() => loading.value = false);
+        return manufacturingApi.createProductionOrder(ProductionOrderAssembler.toResourceFromEntity(order))
+            .then(response => {
+                const created = ProductionOrderAssembler.toEntityFromResource(response.data);
+                orders.value.push(created);
+                return manufacturingApi.createBatch(BatchAssembler.toResourceFromEntity(batch, created.id));
+            })
+            .then(response => {
+                batches.value.unshift(BatchAssembler.toEntityFromResource(response.data, orders.value));
+                replaceEvents(response.data);
+            })
+            .catch(keepError)
+            .finally(() => loading.value = false);
     }
 
     /**
@@ -179,27 +194,31 @@ const useManufacturingStore = defineStore('manufacturing', () => {
         if (sequence.some(operation => operation.status === 'on-hold')) return;
         const next = sequence.find(operation => operation.status !== 'complete');
         if (!next) return;
-        const resource = {...OperationAssembler.toResourceFromEntity(next), progress: 100, status: 'complete'};
-        manufacturingApi.updateOperation(resource)
-            .then(response => Object.assign(next, OperationAssembler.toEntityFromResource(response.data)))
-            .catch(error => errors.value.push(error));
+        const resource = OperationAssembler.toResourceFromEntity({...next, progress: 100, status: 'complete'});
+        manufacturingApi.updateOperation(orderId, next.sequence, resource)
+            .then(response => {
+                operations.value = operations.value.filter(operation => operation.orderId !== orderId)
+                    .concat(OperationAssembler.toEntitiesFromOrders([response.data]));
+                const order = orders.value.find(item => item.id === orderId);
+                if (order) Object.assign(order, ProductionOrderAssembler.toEntityFromResource(response.data));
+            })
+            .catch(keepError);
     }
 
     /**
-     * Releases a batch after the QA electronic signature.
+     * Releases a batch whose release was requested, after the QA electronic signature.
      * @param {string} batchCode - Code of the batch.
+     * @param {string} [releasedBy] - Name of the QA approver.
      */
-    function releaseBatch(batchCode) {
+    function releaseBatch(batchCode, releasedBy = '') {
         const batch = batchByCode(batchCode);
         if (!batch) return;
-        const resource = {
-            ...BatchAssembler.toResourceFromEntity(batch),
-            status: 'released', lastActivity: 'Released by QA', lastActivityAt: new Date().toISOString()
-        };
-        manufacturingApi.updateBatch(resource)
-            .then(response => Object.assign(batch, BatchAssembler.toEntityFromResource(response.data)))
-            .catch(error => errors.value.push(error));
-        addEvent(batchCode, 'Released for distribution', 'QA electronic signature', 'normal');
+        manufacturingApi.releaseBatch(batch.id, releasedBy)
+            .then(response => {
+                Object.assign(batch, BatchAssembler.toEntityFromResource(response.data, orders.value));
+                replaceEvents(response.data);
+            })
+            .catch(keepError);
     }
 
     /**
@@ -209,10 +228,9 @@ const useManufacturingStore = defineStore('manufacturing', () => {
      */
     function addMaterialLot(lot) {
         loading.value = true;
-        const {id, ...resource} = MaterialLotAssembler.toResourceFromEntity(lot);
-        return manufacturingApi.createMaterialLot(resource)
+        return manufacturingApi.receiveMaterialLot(MaterialLotAssembler.toResourceFromEntity(lot))
             .then(response => materialLots.value.unshift(MaterialLotAssembler.toEntityFromResource(response.data)))
-            .catch(error => errors.value.push(error))
+            .catch(keepError)
             .finally(() => loading.value = false);
     }
 
@@ -221,10 +239,9 @@ const useManufacturingStore = defineStore('manufacturing', () => {
      * @param {import('../domain/model/material-lot.entity.js').MaterialLot} lot - Lot to inspect.
      */
     function requestInspection(lot) {
-        const resource = {...MaterialLotAssembler.toResourceFromEntity(lot), samplingStatus: 'requested', status: 'inspection'};
-        manufacturingApi.updateMaterialLot(resource)
+        manufacturingApi.inspectMaterialLot(lot.id, MaterialLotAssembler.toInspectionResourceFromEntity(lot, 'requested'))
             .then(response => Object.assign(lot, MaterialLotAssembler.toEntityFromResource(response.data)))
-            .catch(error => errors.value.push(error));
+            .catch(keepError);
     }
 
     fetchAll();

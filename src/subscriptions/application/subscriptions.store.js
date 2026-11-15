@@ -3,126 +3,103 @@ import {computed, ref} from "vue";
 import {SubscriptionsApi} from "../infrastructure/subscriptions-api.js";
 import {PlanAssembler} from "../infrastructure/plan.assembler.js";
 import {SubscriptionAssembler} from "../infrastructure/subscription.assembler.js";
-import {InvoiceAssembler} from "../infrastructure/invoice.assembler.js";
-import {Subscription} from "../domain/model/subscription.entity.js";
-import {Invoice} from "../domain/model/invoice.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 const subscriptionsApi = new SubscriptionsApi();
 
 /**
- * Application service store for the Subscriptions & Payments bounded context.
- * It holds the plans, the subscription of the organization and its invoices, and applies the plan
- * change and the payment retry.
- *
- * @returns {Object} Store state and actions.
+ * Takes the message of the ProblemDetail sent by the platform (400, 404, 409, 422, 503).
+ * @param {unknown} error - Axios error.
+ * @param {string} fallback - Message used when the platform sends no detail.
+ * @returns {Error} Error with a readable message.
+ */
+const toError = (error, fallback) => new Error(error?.response?.data?.detail ?? error?.response?.data?.title ?? fallback);
+
+/**
+ * Holds the plans, the subscription of the current organization and its invoices.
  */
 const useSubscriptionsStore = defineStore('subscriptions', () => {
-    /** @type {import('vue').Ref<Array<import('../domain/model/plan.entity.js').Plan>>} Plans offered by DoofPlus. */
     const plans = ref([]);
-    /** @type {import('vue').Ref<Subscription|null>} Subscription of the current organization. */
     const subscription = ref(null);
-    /** @type {import('vue').Ref<Array<Invoice>>} Invoices of the subscription. */
-    const allInvoices = ref([]);
-    /** @type {import('vue').Ref<boolean>} Whether a request is running. */
     const loading = ref(false);
-    /** @type {import('vue').Ref<Array<Error>>} Errors of the last requests. */
     const errors = ref([]);
 
-    /** @type {import('vue').ComputedRef<Array<Invoice>>} Invoices of the subscription, newest first. */
-    const invoices = computed(() => [...allInvoices.value].sort((a, b) => b.issuedAt.localeCompare(a.issuedAt)));
-    /** @type {import('vue').ComputedRef<Object|undefined>} Plan of the subscription. */
-    const currentPlan = computed(() => plans.value.find(plan => plan.key === subscription.value?.planKey));
-    /** @type {import('vue').ComputedRef<number>} Amount charged per billing cycle. */
+    const invoices = computed(() => [...(subscription.value?.invoices ?? [])].sort((a, b) => b.issuedAt.localeCompare(a.issuedAt)));
+    const currentPlan = computed(() => plans.value.find(plan => plan.id === subscription.value?.planId));
     const currentAmount = computed(() => {
         if (!currentPlan.value) return 0;
         return subscription.value?.billingCycle === 'annual' ? currentPlan.value.annualPrice : currentPlan.value.monthlyPrice;
     });
 
-    /** Loads the plans, which are public. */
-    function fetchPlans() {
-        subscriptionsApi.getPlans()
-            .then(response => plans.value = PlanAssembler.toEntitiesFromResponse(response))
-            .catch(error => errors.value.push(error));
+    /**
+     * Shows a subscription with the key of its plan.
+     * @param {import('../domain/model/subscription.entity.js').Subscription|null} value - Subscription or null.
+     */
+    function setSubscription(value) {
+        if (value) value.planKey = plans.value.find(plan => plan.id === value.planId)?.key ?? '';
+        subscription.value = value;
     }
 
-    /**
-     * Loads the subscription of an organization and its invoices.
-     * @param {number} organizationId - Identifier of the organization.
-     */
+    function fetchPlans() {
+        return subscriptionsApi.getPlans()
+            .then(response => {
+                plans.value = PlanAssembler.toEntitiesFromResponse(response);
+                if (subscription.value) setSubscription(subscription.value);
+            })
+            .catch(error => errors.value.push(toError(error, 'Failed to load plans')));
+    }
+
     function fetchForOrganization(organizationId) {
         loading.value = true;
-        subscriptionsApi.getSubscriptions()
+        subscriptionsApi.getSubscriptionsByOrganization(organizationId)
             .then(response => {
-                subscription.value = SubscriptionAssembler.toEntitiesFromResponse(response)
-                    .find(item => item.organizationId === organizationId) ?? null;
-                if (!subscription.value) return;
-                return subscriptionsApi.getInvoices().then(invoicesResponse => allInvoices.value = InvoiceAssembler
-                    .toEntitiesFromResponse(invoicesResponse).filter(invoice => invoice.subscriptionId === subscription.value.id));
+                const subscriptions = SubscriptionAssembler.toEntitiesFromResponse(response);
+                setSubscription(subscriptions.find(item => item.status === 'pending' || item.status === 'active')
+                    ?? subscriptions[0] ?? null);
             })
-            .catch(error => errors.value.push(error))
+            .catch(error => errors.value.push(toError(error, 'Failed to load the subscription')))
             .finally(() => loading.value = false);
     }
 
-    /**
-     * Creates the pending subscription of a newly registered organization.
-     * @param {number} organizationId - Identifier of the new organization.
-     * @param {string} planKey - Key of the selected plan.
-     * @param {string} billingCycle - Selected billing cycle (monthly or annual).
-     * @param {string} billingEmail - Email of the administrator.
-     * @returns {Promise<void>} Resolves when the subscription was created.
-     */
     function subscribe(organizationId, planKey, billingCycle, billingEmail) {
-        const nextInvoice = new Date();
-        nextInvoice.setMonth(nextInvoice.getMonth() + (billingCycle === 'annual' ? 12 : 1));
-        const {id, ...resource} = SubscriptionAssembler.toResourceFromEntity(new Subscription({
-            organizationId, planKey, billingCycle, status: 'pending', paymentState: 'approved',
-            nextInvoiceDate: nextInvoice.toISOString().slice(0, 10), autoRenew: true, billingEmail
-        }));
-        return subscriptionsApi.createSubscription(resource)
-            .then(response => subscription.value = SubscriptionAssembler.toEntityFromResource(response.data))
-            .catch(error => errors.value.push(error));
+        const plan = plans.value.find(item => item.key === planKey);
+        if (!plan) {
+            errors.value.push(new Error('Plan not found'));
+            return Promise.resolve();
+        }
+        // The registration does not ask for the card yet: test card of the Niubiz sandbox
+        return subscriptionsApi.createSubscription({
+            organizationId, planId: plan.id, billingCycle: EnumValue.toPlatform(billingCycle),
+            cardBrand: 'Visa', cardLast4: '4242', cardExpiry: '08/2028', billingEmail
+        })
+            .then(response => setSubscription(SubscriptionAssembler.toEntityFromResource(response.data)))
+            .catch(error => errors.value.push(toError(error, 'Failed to create the subscription')));
     }
 
-    /**
-     * Persists changes to the subscription and refreshes the state.
-     * @param {Object} changes - Fields to change.
-     * @returns {Promise<void>} Resolves when the subscription was saved.
-     */
-    function saveSubscription(changes) {
+    function changePlan(planKey, billingCycle) {
+        const plan = plans.value.find(item => item.key === planKey);
+        if (!subscription.value || !plan) return;
         loading.value = true;
-        const resource = {...SubscriptionAssembler.toResourceFromEntity(subscription.value), ...changes};
-        return subscriptionsApi.updateSubscription(resource)
-            .then(response => subscription.value = SubscriptionAssembler.toEntityFromResource(response.data))
-            .catch(error => errors.value.push(error))
+        errors.value = [];
+        return subscriptionsApi.changePlan(subscription.value.id, plan.id, EnumValue.toPlatform(billingCycle))
+            .then(response => setSubscription(SubscriptionAssembler.toEntityFromResource(response.data)))
+            .catch(error => errors.value.push(toError(error, 'Failed to change the plan')))
             .finally(() => loading.value = false);
     }
 
     /**
-     * Changes the plan or billing cycle of the subscription. Only administrators reach this action.
-     * @param {string} planKey - Key of the new plan.
-     * @param {string} billingCycle - New billing cycle.
-     * @returns {Promise<void>|undefined} Resolves when the change was saved.
+     * Retries a declined charge with Niubiz: an approved payment activates or renews the subscription and becomes
+     * a new invoice; a rejected or failed payment shows the reason sent by the platform.
+     * @param {string} [cardToken] - Token of the card returned by the Niubiz checkout.
      */
-    function changePlan(planKey, billingCycle) {
+    function retryPayment(cardToken = 'sandbox-card-token') {
         if (!subscription.value) return;
-        return saveSubscription({planKey, billingCycle});
-    }
-
-    /**
-     * Retries a declined charge: Niubiz approves it, an invoice is issued and the subscription becomes active.
-     * @returns {Promise<void>|undefined} Resolves when the payment was registered.
-     */
-    function retryPayment() {
-        if (!subscription.value) return;
-        const issuedAt = new Date().toISOString().slice(0, 10);
-        const {id, ...invoice} = InvoiceAssembler.toResourceFromEntity(new Invoice({
-            subscriptionId: subscription.value.id, number: `INV-${issuedAt.slice(0, 4)}-${issuedAt.slice(5, 7)}01`,
-            issuedAt, amount: currentAmount.value, status: 'approved'
-        }));
-        subscriptionsApi.createInvoice(invoice)
-            .then(response => allInvoices.value.push(InvoiceAssembler.toEntityFromResource(response.data)))
-            .catch(error => errors.value.push(error));
-        return saveSubscription({paymentState: 'approved', status: 'active'});
+        loading.value = true;
+        errors.value = [];
+        return subscriptionsApi.paySubscription(subscription.value.id, cardToken)
+            .then(response => setSubscription(SubscriptionAssembler.toEntityFromResource(response.data)))
+            .catch(error => errors.value.push(toError(error, 'Failed to register the payment')))
+            .finally(() => loading.value = false);
     }
 
     fetchPlans();

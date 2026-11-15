@@ -1,4 +1,5 @@
 import {AuditFinding} from "../domain/model/audit-finding.entity.js";
+import {fromPlatform} from "./platform-resource.js";
 
 /**
  * Maps audit findings resources of the API to and from AuditFinding entities.
@@ -11,7 +12,7 @@ export class AuditFindingAssembler {
      * @returns {AuditFinding} The entity.
      */
     static toEntityFromResource(resource) {
-        return new AuditFinding({...resource});
+        return new AuditFinding(fromPlatform(resource, ["classification", "status"]));
     }
 
     /**

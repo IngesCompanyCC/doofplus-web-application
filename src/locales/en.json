@@ -17,11 +17,9 @@
     "all-environments": "All environments",
     "back-to-sign-in": "Back to sign in",
     "help": "Help & documentation",
-    "search": "Search batches, documents, people",
     "utc": "All times UTC",
     "role-based": "Role-based permissions",
     "contact-us": "Contact us",
-    "_q": "Questions about DoofPlus?",
     "search-qa": "Search by document or batch code",
     "search-production": "Search by batch, order or sensor code",
     "search-empty": "No record with the code {code}. Enter the exact code, for example {example}.",
@@ -635,10 +633,10 @@
       "title": "Send us your question",
       "subtitle": "Tell us about your laboratory and what you need. The DoofPlus team answers by email.",
       "panel-title": "Talk to the DoofPlus team",
-      "panel-text": "Questions about plans, a guided demo or how DoofPlus supports DIGEMID and GMP compliance? We are here to help.",
+      "panel-text": "Questions about the plans, the environments for each role or how DoofPlus supports DIGEMID and GMP compliance? We are here to help.",
       "topics": {
         "plans": "Plans and pricing for your laboratory",
-        "demo": "A guided demo for your QA and Production teams",
+        "environments": "QA, Production and Administration environments for your teams",
         "compliance": "DIGEMID and GMP compliance",
         "support": "Technical support and onboarding"
       },
@@ -658,7 +656,11 @@
       "privacy": "We only use your data to answer this inquiry.",
       "sent-title": "Inquiry received",
       "sent-text": "Thank you. We registered your inquiry and will answer you at {email}.",
-      "send-another": "Send another inquiry"
+      "send-another": "Send another inquiry",
+      "sending": "Sending…",
+      "send-error": "We could not send your inquiry. Try again in a few minutes.",
+      "back-to-sign-in": "Back to sign in",
+      "channels-label": "Contact channels"
     }
   },
   "monitoring": {

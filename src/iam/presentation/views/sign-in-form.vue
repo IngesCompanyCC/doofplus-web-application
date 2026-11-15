@@ -42,7 +42,7 @@ onMounted(() => {
 const performSignIn = () => {
   submitted.value = true;
   if (emailError.value || passwordError.value) return;
-  store.signIn(new SignInCommand({ email: email.value.trim(), password: password.value, environment: props.environment }));
+  store.signIn(new SignInCommand({ email: email.value.trim(), password: password.value, environment: props.environment }), router);
 };
 
 /** Checks the two-factor code once the six digits were entered. */

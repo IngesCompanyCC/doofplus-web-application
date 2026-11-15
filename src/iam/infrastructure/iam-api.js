@@ -1,12 +1,15 @@
-import {BaseApi} from "../../shared/infrastructure/base-api.js";
+import {BaseApi, platformApiUrl} from "../../shared/infrastructure/base-api.js";
 import {BaseEndpoint} from "../../shared/infrastructure/base-endpoint.js";
 
+const signInEndpointPath = import.meta.env.VITE_SIGN_IN_ENDPOINT_PATH;
+const signUpEndpointPath = import.meta.env.VITE_SIGN_UP_ENDPOINT_PATH;
 const usersEndpointPath = import.meta.env.VITE_USERS_ENDPOINT_PATH;
 const roleProfilesEndpointPath = import.meta.env.VITE_ROLE_PROFILES_ENDPOINT_PATH;
 const invitationsEndpointPath = import.meta.env.VITE_INVITATIONS_ENDPOINT_PATH;
 
 /**
  * Infrastructure gateway for the IAM endpoints.
+ * Sign-in, sign-up and users use the DoofPlus Platform; role profiles and invitations still use the fake API.
  *
  * @class IamApi
  * @extends BaseApi
@@ -16,46 +19,39 @@ export class IamApi extends BaseApi {
     #roleProfilesEndpoint;
     #invitationsEndpoint;
 
-    /** Creates the endpoint clients for users, role profiles and invitations. */
+    /** Creates the endpoint clients for users (platform), role profiles and invitations (fake API). */
     constructor() {
-        super();
+        super(platformApiUrl);
+        const fakeApi = new BaseApi();
         this.#usersEndpoint = new BaseEndpoint(this, usersEndpointPath);
-        this.#roleProfilesEndpoint = new BaseEndpoint(this, roleProfilesEndpointPath);
-        this.#invitationsEndpoint = new BaseEndpoint(this, invitationsEndpointPath);
+        this.#roleProfilesEndpoint = new BaseEndpoint(fakeApi, roleProfilesEndpointPath);
+        this.#invitationsEndpoint = new BaseEndpoint(fakeApi, invitationsEndpointPath);
     }
 
     /**
-     * Finds the users that match the credentials of the command.
-     * The fake API filters users by query parameters; the DoofPlus RESTful API will expose a sign-in endpoint.
-     * @param {import('../domain/model/sign-in.command.js').SignInCommand} signInCommand - Email and password.
-     * @returns {Promise<import('axios').AxiosResponse<Array<Object>>>} HTTP response with the matching users.
+     * Signs in with the DoofPlus Platform. The platform answers 401 with the reason in the detail of the problem:
+     * invalid-credentials, two-factor-required (the password is right; send the code in a second request) or
+     * invalid-two-factor-code.
+     * @param {string} email - Work email of the user.
+     * @param {string} password - Password of the user.
+     * @param {string} [twoFactorCode] - Six-digit code of the authenticator app; omitted in the first step.
+     * @returns {Promise<import('axios').AxiosResponse<Object>>} HTTP response with the user and its JWT.
      */
-    findUsersByCredentials(signInCommand) {
-        return this.http.get(usersEndpointPath, {params: {email: signInCommand.email, password: signInCommand.password}});
+    signIn(email, password, twoFactorCode) {
+        return this.http.post(signInEndpointPath, {email, password, twoFactorCode: twoFactorCode ?? null});
     }
 
     /**
-     * Finds the user with the given identifier and two-factor code.
-     * @param {number} userId - Identifier of the user that is signing in.
-     * @param {string} code - Six-digit code from the authenticator app.
-     * @returns {Promise<import('axios').AxiosResponse<Array<Object>>>} HTTP response with the user when the code is valid.
-     */
-    findUsersByTwoFactorCode(userId, code) {
-        return this.http.get(usersEndpointPath, {params: {id: userId, twoFactorCode: code}});
-    }
-
-    /**
-     * Creates a user account with its password.
-     * The fake API stores the password with the user; the DoofPlus RESTful API will hash it in a sign-up endpoint.
+     * Creates a user account with its password in the DoofPlus Platform, which stores it hashed.
      * @param {Object} resource - User resource built by the UserAssembler, with the password.
      * @returns {Promise<import('axios').AxiosResponse<Object>>} HTTP response with the created user.
      */
     createUser(resource) {
-        return this.#usersEndpoint.create(resource);
+        return this.http.post(signUpEndpointPath, resource);
     }
 
     /**
-     * Retrieves the users of the organization.
+     * Retrieves the users of the platform (only administrators receive them).
      * @returns {Promise<import('axios').AxiosResponse<Array<Object>>>} HTTP response with the user resources.
      */
     getUsers() {

@@ -1,9 +1,9 @@
 import axios from "axios";
 import {iamTokenInterceptor} from "../../iam/infrastructure/iam-token.interceptor.js";
 
-/** DoofPlus Platform (RESTful Web Services): IAM (sign-in, sign-up, users), Organizations, IoT Monitoring and Subscriptions. */
+/** DoofPlus Platform (RESTful Web Services): IAM (sign-in, sign-up, users), Manufacturing, Organizations, IoT Monitoring and Subscriptions. */
 export const platformApiUrl = import.meta.env.VITE_PLATFORM_API_URL;
-/** Fake API (json-server) for the resources not connected yet: IAM profiles and invitations, Manufacturing and Quality. */
+/** Fake API (json-server) for the resources not connected yet: IAM profiles and invitations and Quality. */
 export const fakeApiUrl = import.meta.env.VITE_FAKE_API_URL;
 
 /**

@@ -365,7 +365,7 @@ const useQualityStore = defineStore('quality', () => {
     async function signRelease(batchCode, password) {
         if (releaseChecks(batchCode).some(check => !check.passed)) return 'not-ready';
         if (!await iamStore.verifyPassword(password)) return 'invalid-password';
-        manufacturingStore.releaseBatch(batchCode);
+        manufacturingStore.releaseBatch(batchCode, iamStore.currentUser?.fullName ?? '');
         log('Batch released (electronic signature)', batchCode, 'Released');
         return 'released';
     }

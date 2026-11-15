@@ -1,43 +1,48 @@
 import {BatchEvent} from "../domain/model/batch-event.entity.js";
+import {EnumValue} from "../../shared/infrastructure/enum-value.js";
 
 /**
- * Maps batch events resources of the API to and from BatchEvent entities.
+ * Titles of the events that the DoofPlus Platform records in a batch, by type.
+ * @type {Object<string, string>}
+ */
+const titles = {
+    BATCH_CREATED: 'Created',
+    BATCH_STARTED: 'Production started',
+    BATCH_RESUMED: 'Production resumed',
+    INCIDENT_REGISTERED: 'Incident registered',
+    MATERIAL_CONSUMED: 'Material consumed',
+    RELEASE_REQUESTED: 'Release requested',
+    BATCH_RELEASED: 'Released for distribution'
+};
+
+/**
+ * Maps the events that come inside the batches of the DoofPlus Platform to BatchEvent entities.
  *
  * @class BatchEventAssembler
  */
 export class BatchEventAssembler {
     /**
-     * @param {Object} resource - Resource from the API.
-     * @returns {BatchEvent} The entity.
+     * @param {Object} resource - Event resource (type, description, tone and date).
+     * @param {string} batchCode - Number of the batch that contains it.
+     * @returns {BatchEvent} The entity: the title comes from the type and the detail is the description.
      */
-    static toEntityFromResource(resource) {
-        return new BatchEvent({...resource});
+    static toEntityFromResource(resource, batchCode) {
+        return new BatchEvent({
+            id: resource.id,
+            batchCode,
+            title: titles[resource.type] ?? resource.type,
+            detail: resource.description ?? '',
+            occurredAt: resource.occurredAt,
+            tone: EnumValue.toView(resource.tone)
+        });
     }
 
     /**
-     * @param {import('axios').AxiosResponse<Array<Object>>} response - HTTP response with the resources.
-     * @returns {Array<BatchEvent>} The entities, or an empty array when the response failed.
+     * @param {Array<Object>} batchResources - Batch resources with their events.
+     * @returns {Array<BatchEvent>} The events of every batch.
      */
-    static toEntitiesFromResponse(response) {
-        if (response.status !== 200) {
-            console.error(`${response.status}, ${response.statusText}`);
-            return [];
-        }
-        return response.data.map(resource => this.toEntityFromResource(resource));
-    }
-
-    /**
-     * @param {BatchEvent} entity - The entity.
-     * @returns {Object} The resource sent to the API.
-     */
-    static toResourceFromEntity(entity) {
-        return {
-            id: entity.id,
-            batchCode: entity.batchCode,
-            title: entity.title,
-            detail: entity.detail,
-            occurredAt: entity.occurredAt,
-            tone: entity.tone
-        };
+    static toEntitiesFromBatches(batchResources) {
+        return batchResources.flatMap(batch =>
+            (batch.events ?? []).map(event => this.toEntityFromResource(event, batch.batchNumber)));
     }
 }

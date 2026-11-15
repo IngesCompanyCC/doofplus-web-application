@@ -4,6 +4,8 @@ import {useRoute, useRouter} from "vue-router";
 import {useI18n} from "vue-i18n";
 import {useToast} from "primevue/usetoast";
 import axios from "axios";
+import {platformApiUrl} from "../../infrastructure/base-api.js";
+import {iamTokenInterceptor} from "../../../iam/infrastructure/iam-token.interceptor.js";
 import LanguageSwitcher from "./language-switcher.vue";
 import FooterContent from "./footer-content.vue";
 import {formatDate} from "../format.js";
@@ -40,13 +42,17 @@ const search = async () => {
   if (!code) return;
   for (const target of searchTargets.value) {
     try {
-      // The Fake API filters by code; the DoofPlus Platform returns the whole collection, so the exact code is matched here.
-      const response = await axios.get(target.url, { params: { code } });
-      const records = Array.isArray(response.data) ? response.data : [];
-      const found = records.find(record => record.code?.toUpperCase() === code);
+      // Each target says which field holds the code (code by default) and filters by it; the exact code is matched
+      // here because some collections return all their records. The DoofPlus Platform needs the JWT of the session.
+      const field = target.field ?? 'code';
+      const request = { headers: {}, params: { [field]: code } };
+      const response = await axios.get(target.url, target.url.startsWith(platformApiUrl) ? iamTokenInterceptor(request) : request);
+      // A lookup by number (production batches) answers one record instead of a list.
+      const records = Array.isArray(response.data) ? response.data : [response.data].filter(Boolean);
+      const found = records.find(record => record[field]?.toUpperCase() === code);
       if (found) {
         searchQuery.value = '';
-        const targetRoute = target.route.replace('{code}', encodeURIComponent(found.code));
+        const targetRoute = target.route.replace('{code}', encodeURIComponent(found[field]));
         await router.push(targetRoute);
         return;
       }
